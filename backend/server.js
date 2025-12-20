@@ -36,8 +36,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 //       ],
 //       metadata: { category },
 //       customer_email: email, // use validated email
-//       success_url: "http://localhost:5173/success",
-//       cancel_url: "http://localhost:5173/cancel",
+//       success_url: "http://church-giving-app-joze.vercel.app/success",
+//       cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
 //     });
 
 //     console.log("Stripe session created:", session.id);
@@ -84,8 +84,8 @@ app.post("/create-checkout-session", async (req, res) => {
     //       },
     //     ],
     //     metadata: { category, frequency },
-    //     success_url: "http://localhost:5173/success",
-    //     cancel_url: "http://localhost:5173/cancel",
+    //     success_url: "http://church-giving-app-joze.vercel.app/success",
+    //     cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
     //   });
     // }
     if (frequency === "one-time") {
@@ -105,8 +105,8 @@ app.post("/create-checkout-session", async (req, res) => {
           },
         ],
         metadata: { category, frequency },
-        success_url: "http://localhost:5173/success",
-        cancel_url: "http://localhost:5173/cancel",
+        success_url: "http://church-giving-app-joze.vercel.app/success",
+        cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
       });
     }
 
@@ -130,8 +130,8 @@ app.post("/create-checkout-session", async (req, res) => {
     //       },
     //     ],
     //     metadata: { category, frequency },
-    //     success_url: "http://localhost:5173/success",
-    //     cancel_url: "http://localhost:5173/cancel",
+    //     success_url: "http://church-giving-app-joze.vercel.app/success",
+    //     cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
     //   });
     // }
     if (frequency === "monthly") {
@@ -152,8 +152,8 @@ app.post("/create-checkout-session", async (req, res) => {
           },
         ],
         metadata: { category, frequency },
-        success_url: "http://localhost:5173/success",
-        cancel_url: "http://localhost:5173/cancel",
+        success_url: "http://church-giving-app-joze.vercel.app/success",
+        cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
       });
     }
 
@@ -186,7 +186,7 @@ app.post("/create-portal-session", async (req, res) => {
     // Create a portal session
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customer.id,
-      return_url: "http://localhost:5173", // redirect back to your site
+      return_url: "http://church-giving-app-joze.vercel.app", // redirect back to your site
     });
 
     res.json({ url: portalSession.url });
