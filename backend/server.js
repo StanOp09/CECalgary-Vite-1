@@ -105,8 +105,8 @@ app.post("/create-checkout-session", async (req, res) => {
           },
         ],
         metadata: { category, frequency },
-        success_url: "http://church-giving-app-joze.vercel.app/success",
-        cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
+        success_url: "https://church-giving-app-joze.vercel.app/",
+        cancel_url: "https://church-giving-app-joze.vercel.app/",
       });
     }
 
@@ -152,8 +152,8 @@ app.post("/create-checkout-session", async (req, res) => {
           },
         ],
         metadata: { category, frequency },
-        success_url: "http://church-giving-app-joze.vercel.app/success",
-        cancel_url: "http://church-giving-app-joze.vercel.app/cancel",
+        success_url: "http://church-giving-app-joze.vercel.app/",
+        cancel_url: "http://church-giving-app-joze.vercel.app/",
       });
     }
 
