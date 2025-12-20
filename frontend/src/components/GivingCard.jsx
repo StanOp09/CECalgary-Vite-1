@@ -46,6 +46,19 @@ export default function GivingCard({ id, title, description, Icon, bgColor }) {
     }
   };
 
+  // const handleGive = () => {
+  //   const baseUrl =
+  //     "https://tithe.ly/give_new/www/#/tithely/give-one-time/123456";
+
+  //   const params = new URLSearchParams({
+  //     amount: amount || "",
+  //     recurring: frequency === "monthly" ? "monthly" : "",
+  //     fund: id, // optional if you map fund IDs
+  //   });
+
+  //   window.location.href = `${baseUrl}?${params.toString()}`;
+  // };
+
   return (
     <div
       className={`
