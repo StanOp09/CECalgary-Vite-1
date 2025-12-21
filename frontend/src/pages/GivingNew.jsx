@@ -212,9 +212,7 @@ export default function Giving() {
     <div className="w-full mt-20 min-h-screen bg-yellow-50 p-4">
       <GivingHero />
       {/* Manage Giving (separate, donor-level) */}
-      <div className="my-12 flex justify-center ">
-        <ManageGiving />
-      </div>
+      <div className="my-12 flex justify-center ">{/* <ManageGiving /> */}</div>
       {/* Giving Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-6xl mx-auto">
         {givingCategories.map((cat) => (
