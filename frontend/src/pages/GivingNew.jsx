@@ -228,7 +228,7 @@ export default function Giving() {
           />
         ))}
       </div>
-      <OtherGivingMethod />
+      {/* <OtherGivingMethod /> */}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export default function GivingHero() {
       </div>
 
       {/* Trust badges */}
-      <div className="flex flex-wrap justify-center gap-4 mb-12">
+      {/* <div className="flex flex-wrap justify-center gap-4 mb-12">
         <span className="bg-blue-50 px-6 py-2 rounded-lg text-sm font-medium text-blue-700">
           Secure Payments
         </span>
@@ -25,7 +25,7 @@ export default function GivingHero() {
         <span className="bg-purple-50 px-6 py-2 rounded-lg text-sm font-medium text-purple-700">
           Manage Giving Anytime
         </span>
-      </div>
+      </div> */}
     </div>
   );
 }
