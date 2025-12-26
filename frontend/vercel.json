@@ -1,3 +1,28 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "version": 3,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/register",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "https://cecalgary-vite-1-2.onrender.com/$1"
+    }
+  ]
 }
