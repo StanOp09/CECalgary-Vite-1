@@ -5,9 +5,15 @@ import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Giving from "./pages/GivingNew.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
+import MinimalLayout from "./layouts/MinimalLayout.jsx";
+
 import Success from "./pages/Success.jsx";
 import Cancel from "./pages/Cancel.jsx";
 import Home from "./pages/Home.jsx";
+import RegistrationPage from "./pages/Registration.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import AdminLogin from "./pages/AdminLogin.jsx";
+import AdminProtectedRoute from "./components/AdminProtectedRoute.jsx";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +51,15 @@ const router = createBrowserRouter([
         path: "/cancel",
         element: <Cancel />,
       },
+
+      {
+        path: "/admin/login",
+        element: <AdminLogin />,
+      },
+      {
+        path: "/admin",
+        element: <AdminDashboard />,
+      },
       // {
       //   path: "/about/beliefs",
       //   element: <Beliefs />,
@@ -70,6 +85,10 @@ const router = createBrowserRouter([
       //   element: <Register />,
       // },
     ],
+  },
+  {
+    element: <MinimalLayout />, // minimal layout
+    children: [{ path: "/register", element: <RegistrationPage /> }],
   },
 ]);
 
