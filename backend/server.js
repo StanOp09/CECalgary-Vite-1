@@ -388,6 +388,12 @@ const registrationSchema = new mongoose.Schema({
 const Registration = mongoose.model("Registration", registrationSchema);
 
 // Registration routes
+app.get("/register", (req, res) => {
+  res.status(200).json({
+    message: "Register endpoint is live. Use POST to submit data.",
+  });
+});
+
 app.post("/register", async (req, res) => {
   try {
     const { fullName, email, phone, attendees } = req.body;
