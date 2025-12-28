@@ -241,20 +241,47 @@ export default function ProgramRegistration() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     const res = await fetch(`${BACKEND_URL}/register`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(formData),
+  //     });
+  //     const data = await res.json();
+  //     alert(data.message);
+  //     setShowForm(false);
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("Failed to submit registration");
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const res = await fetch(`${BACKEND_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+
+      const text = await res.text(); // 👈 IMPORTANT
+
+      if (!res.ok) {
+        console.error("Server error:", text);
+        alert("Registration failed. Please try again in a few minutes.");
+        return;
+      }
+
+      const data = JSON.parse(text);
       alert(data.message);
       setShowForm(false);
     } catch (err) {
-      console.error(err);
-      alert("Failed to submit registration");
+      console.error("Network error:", err);
+      alert("Registration failed. Please check your connection and try again.");
     }
   };
 

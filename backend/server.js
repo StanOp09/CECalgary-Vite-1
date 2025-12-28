@@ -394,19 +394,43 @@ app.get("/register", (req, res) => {
   });
 });
 
+// app.post("/register", async (req, res) => {
+//   try {
+//     const { fullName, email, phone, attendees } = req.body;
+//     const registration = new Registration({
+//       fullName,
+//       email,
+//       phone,
+//       attendees,
+//     });
+//     await registration.save();
+//     res.status(201).json({ message: "Registration successful" });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
+
 app.post("/register", async (req, res) => {
   try {
-    const { fullName, email, phone, attendees } = req.body;
+    const { fullName, email, phone, attendees } = req.body || {};
+
+    if (!fullName || !email || !phone || !attendees) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
     const registration = new Registration({
       fullName,
       email,
       phone,
-      attendees,
+      attendees: Number(attendees),
     });
+
     await registration.save();
+
     res.status(201).json({ message: "Registration successful" });
   } catch (err) {
-    console.error(err);
+    console.error("Registration error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -419,6 +443,10 @@ app.get("/registrations", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
 // ADMIN DASHBOARD ROUTE
