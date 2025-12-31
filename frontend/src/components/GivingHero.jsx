@@ -1,6 +1,6 @@
 export default function GivingHero() {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 mb-12 max-w-6xl mx-auto mt-12">
+    <div className="rounded-2xl p-8 mb-2 max-w-6xl mx-auto">
       {/* Header */}
       <div className="text-center mb-10">
         <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900">
