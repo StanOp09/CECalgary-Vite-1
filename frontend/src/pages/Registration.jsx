@@ -362,10 +362,246 @@
 //   );
 // }
 
-import { useState } from "react";
+// import { useEffect, useState } from "react";
+
+// export default function ProgramRegistration() {
+//   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+//   useEffect(() => {
+//     if (!BACKEND_URL) return;
+//     fetch(`${BACKEND_URL}/health`).catch(() => {});
+//   }, [BACKEND_URL]);
+
+//   const [formData, setFormData] = useState({
+//     fullName: "",
+//     email: "",
+//     phone: "",
+//     attendees: 1,
+//   });
+
+//   const [showForm, setShowForm] = useState(false);
+//   const [loading, setLoading] = useState(false);
+
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+//     setFormData((prev) => ({
+//       ...prev,
+//       [name]: name === "attendees" ? Number(value) : value,
+//     }));
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     if (!BACKEND_URL) {
+//       alert("Backend URL is not set. Please contact the admin.");
+//       return;
+//     }
+
+//     setLoading(true);
+
+//     try {
+//       const res = await fetch(`${BACKEND_URL}/register`, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(formData),
+//       });
+
+//       const text = await res.text();
+
+//       if (!res.ok) {
+//         console.error("Server error:", text);
+//         alert("Registration failed. Please try again in a few minutes.");
+//         return;
+//       }
+
+//       const data = JSON.parse(text);
+//       alert(data.message);
+
+//       setShowForm(false);
+//       setFormData({ fullName: "", email: "", phone: "", attendees: 1 });
+//     } catch (err) {
+//       console.error("Network error:", err);
+//       alert("Registration failed. Please check your connection and try again.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="w-full flex flex-col items-center mb-12">
+//       {!showForm && (
+//         <button
+//           onClick={() => setShowForm(true)}
+//           className="group relative inline-flex items-center justify-center rounded-xl px-7 py-3 font-semibold text-white
+//                      bg-yellow-500 hover:bg-yellow-600 transition shadow-lg shadow-yellow-500/20
+//                      focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-black
+//                      mb-10 sm:mt-8"
+//         >
+//           <span className="mr-2">Save Your Seat</span>
+//           <span className="transition-transform group-hover:translate-x-0.5">
+//             →
+//           </span>
+//         </button>
+//       )}
+
+//       {showForm && (
+//         <div className="relative w-full max-w-md">
+//           {/* subtle glow */}
+//           <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-500/30 via-yellow-500/20 to-purple-500/30 blur-lg opacity-70" />
+
+//           <div className="relative bg-white/95 backdrop-blur shadow-2xl rounded-3xl border border-white/60 p-6 sm:p-8 mt-6 sm:mt-8">
+//             {/* Close button */}
+//             <button
+//               type="button"
+//               onClick={() => setShowForm(false)}
+//               className="absolute right-4 top-4 rounded-full p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition"
+//               aria-label="Close registration form"
+//             >
+//               ✕
+//             </button>
+
+//             <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-blue-700 mb-2">
+//               Register for the Miracle Service
+//             </h2>
+//             <p className="text-center text-sm text-gray-600 mb-6">
+//               Please fill in your details to reserve your seat.
+//             </p>
+
+//             <form onSubmit={handleSubmit} className="space-y-4">
+//               {/* Full Name */}
+//               <div>
+//                 <label className="block text-sm font-medium text-gray-700 mb-1">
+//                   Full Name
+//                 </label>
+//                 <div className="relative">
+//                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                     👤
+//                   </span>
+//                   <input
+//                     type="text"
+//                     name="fullName"
+//                     placeholder="First Last"
+//                     value={formData.fullName}
+//                     onChange={handleChange}
+//                     className="w-full pl-10 p-3 border border-gray-200 rounded-xl bg-white
+//                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+//                                text-sm sm:text-base"
+//                     required
+//                   />
+//                 </div>
+//               </div>
+
+//               {/* Email */}
+//               <div>
+//                 <label className="block text-sm font-medium text-gray-700 mb-1">
+//                   Email Address
+//                 </label>
+//                 <div className="relative">
+//                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                     ✉️
+//                   </span>
+//                   <input
+//                     type="email"
+//                     name="email"
+//                     placeholder="name@email.com"
+//                     value={formData.email}
+//                     onChange={handleChange}
+//                     className="w-full pl-10 p-3 border border-gray-200 rounded-xl bg-white
+//                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+//                                text-sm sm:text-base"
+//                     required
+//                   />
+//                 </div>
+//               </div>
+
+//               {/* Phone */}
+//               <div>
+//                 <label className="block text-sm font-medium text-gray-700 mb-1">
+//                   Phone Number
+//                 </label>
+//                 <div className="relative">
+//                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                     📞
+//                   </span>
+//                   <input
+//                     type="tel"
+//                     name="phone"
+//                     placeholder="(403) 000-0000"
+//                     value={formData.phone}
+//                     onChange={handleChange}
+//                     className="w-full pl-10 p-3 border border-gray-200 rounded-xl bg-white
+//                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+//                                text-sm sm:text-base"
+//                     required
+//                   />
+//                 </div>
+//               </div>
+
+//               {/* Attendees */}
+//               <div>
+//                 <label className="block text-sm font-medium text-gray-700 mb-1">
+//                   Number of Attendees
+//                 </label>
+//                 <input
+//                   type="number"
+//                   name="attendees"
+//                   min="1"
+//                   value={formData.attendees}
+//                   onChange={handleChange}
+//                   className="w-full p-3 border border-gray-200 rounded-xl bg-white
+//                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+//                              text-sm sm:text-base"
+//                   required
+//                 />
+//                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
+//                   Enter the total number of people you are registering,
+//                   including yourself.
+//                 </p>
+//               </div>
+
+//               <button
+//                 type="submit"
+//                 disabled={loading}
+//                 className="w-full rounded-xl py-3 font-semibold text-white
+//                            bg-blue-600 hover:bg-blue-700 transition
+//                            shadow-lg shadow-blue-600/20
+//                            disabled:opacity-60 disabled:cursor-not-allowed"
+//               >
+//                 {loading ? "Submitting..." : "Register Now"}
+//               </button>
+
+//               <p className="text-[11px] sm:text-xs text-gray-500 text-center pt-1">
+//                 By registering, you agree to be contacted about this event.
+//               </p>
+//             </form>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+import { useEffect, useState } from "react";
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
 
 export default function ProgramRegistration() {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+    if (!BACKEND_URL) return;
+    // warm up Render so the real submit isn't the first hit
+    fetchWithTimeout(`${BACKEND_URL}/health`, {}, 12000).catch(() => {});
+  }, [BACKEND_URL]);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -394,17 +630,47 @@ export default function ProgramRegistration() {
 
     setLoading(true);
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+    const payload = JSON.stringify(formData);
+    const reqOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    };
 
+    let res;
+
+    try {
+      // Attempt #1
+      res = await fetchWithTimeout(
+        `${BACKEND_URL}/register`,
+        reqOptions,
+        15000
+      );
+    } catch (err1) {
+      console.warn("Register attempt 1 failed, retrying once...", err1);
+
+      try {
+        // Attempt #2 (retry once)
+        res = await fetchWithTimeout(
+          `${BACKEND_URL}/register`,
+          reqOptions,
+          15000
+        );
+      } catch (err2) {
+        console.error("Network error (after retry):", err2);
+        alert(
+          "Registration failed. Please check your connection and try again."
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
       const text = await res.text();
 
       if (!res.ok) {
-        console.error("Server error:", text);
+        console.error("Server error:", res.status, text);
         alert("Registration failed. Please try again in a few minutes.");
         return;
       }
@@ -415,8 +681,8 @@ export default function ProgramRegistration() {
       setShowForm(false);
       setFormData({ fullName: "", email: "", phone: "", attendees: 1 });
     } catch (err) {
-      console.error("Network error:", err);
-      alert("Registration failed. Please check your connection and try again.");
+      console.error("Response parse error:", err);
+      alert("Registration completed, but the response was unexpected.");
     } finally {
       setLoading(false);
     }
@@ -441,16 +707,15 @@ export default function ProgramRegistration() {
 
       {showForm && (
         <div className="relative w-full max-w-md">
-          {/* subtle glow */}
           <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-500/30 via-yellow-500/20 to-purple-500/30 blur-lg opacity-70" />
 
           <div className="relative bg-white/95 backdrop-blur shadow-2xl rounded-3xl border border-white/60 p-6 sm:p-8 mt-6 sm:mt-8">
-            {/* Close button */}
             <button
               type="button"
               onClick={() => setShowForm(false)}
               className="absolute right-4 top-4 rounded-full p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition"
               aria-label="Close registration form"
+              disabled={loading}
             >
               ✕
             </button>
@@ -463,7 +728,6 @@ export default function ProgramRegistration() {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name
@@ -482,11 +746,11 @@ export default function ProgramRegistration() {
                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                                text-sm sm:text-base"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address
@@ -505,11 +769,11 @@ export default function ProgramRegistration() {
                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                                text-sm sm:text-base"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number
@@ -528,11 +792,11 @@ export default function ProgramRegistration() {
                                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                                text-sm sm:text-base"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* Attendees */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Number of Attendees
@@ -547,6 +811,7 @@ export default function ProgramRegistration() {
                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                              text-sm sm:text-base"
                   required
+                  disabled={loading}
                 />
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
                   Enter the total number of people you are registering,
