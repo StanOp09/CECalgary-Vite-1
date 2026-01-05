@@ -82,7 +82,12 @@ const ImageCard = ({ imageSrc, title, description }) => {
 
   useEffect(() => {
     const targetDate = new Date(
-      `${new Date().getFullYear()}-12-31T23:59:59`
+      new Date().getFullYear(), // year
+      0, // January (0-based)
+      25, // 25th
+      10, // 10 AM
+      0, // minutes
+      0 // seconds
     ).getTime();
 
     const interval = setInterval(() => {

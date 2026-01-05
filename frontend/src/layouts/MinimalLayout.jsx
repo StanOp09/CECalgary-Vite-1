@@ -53,6 +53,7 @@ import { Outlet } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import ImageCard from "../components/ImageCard";
 import CenteredImageCard from "../components/CenteredImageCard";
+import CenteredVideoCard from "../components/CenteredVideoCard";
 
 export default function MinimalLayout() {
   const navigate = useNavigate();
@@ -76,22 +77,29 @@ export default function MinimalLayout() {
         Admin Only
       </button>
       {/* Full-width image card with countdown */}
-      <ImageCard imageSrc="/new-year-bg.jpg" title="NEW YEAR'S EVE" />
+      <ImageCard imageSrc="/new-year-bg.jpg" title="MIRACLE SERVICE" />
 
-      {/* Centered image card */}
-      <CenteredImageCard imageSrc="/new-year-card1.png" />
+      {/* Centered Video card */}
+      <CenteredVideoCard
+        videoSrc="/MIRACLE SERVICE PROMO 1.mp4"
+        poster="/MiracleService.jpeg"
+      />
 
       {/* Stylish text */}
       <div className="text-center mt-6 sm:mt-8 max-w-3xl px-2 sm:px-0">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4">
-          Save Your Spot for an Unforgettable Event!
+          Save Your Spot for a Time of the Manifestation of the Sons of God!
         </h2>
         <p className="text-sm sm:text-lg md:text-xl text-gray-300">
-          Join us on December 31st for an evening full of celebration, worship,
-          and insight into the Glorious Year 2026. Reserve your seat now to be
-          part of the festivities.
+          Join us on January 25th for a special Miracle Service filled with
+          worship, prayer, and God’s transforming presence. We invite you to
+          bring the sick, the weary, and all who desire healing, hope, and
+          restoration. Save your seat and come with faith and expectation.
         </p>
       </div>
+
+      {/* Centered image card */}
+      <CenteredImageCard imageSrc="/MiracleService.jpeg" />
 
       {/* Registration button / form */}
       <div className="w-full flex justify-center mt-6 sm:mt-8">

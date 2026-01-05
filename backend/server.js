@@ -1544,6 +1544,325 @@
 // app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // ***********VERSION 6 – FULL SERVER.JS****************
+// import express from "express";
+// import Stripe from "stripe";
+// import cors from "cors";
+// import dotenv from "dotenv";
+// import mongoose from "mongoose";
+// import jwt from "jsonwebtoken";
+// import bcrypt from "bcryptjs";
+// import Donation from "./models/Donation.js";
+// // import spotifyRoutes from "./spotify.js";
+
+// dotenv.config();
+
+// // ---------- ENV CHECKS ----------
+// [
+//   "STRIPE_SECRET_KEY",
+//   "STRIPE_WEBHOOK_SECRET",
+//   "MONGO_URI",
+//   "JWT_SECRET",
+// ].forEach((v) => {
+//   if (!process.env[v]) throw new Error(`${v} missing`);
+// });
+
+// const app = express();
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// // ---------- CORS ----------
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL,
+//     methods: ["GET", "POST"],
+//   })
+// );
+
+// // ---------- BODY PARSER (EXCEPT WEBHOOK) ----------
+// app.use((req, res, next) => {
+//   if (req.originalUrl === "/webhook") {
+//     next(); // Stripe needs raw body
+//   } else {
+//     express.json()(req, res, next);
+//   }
+// });
+
+// // ---------- RETRY HELPER ----------
+// async function withRetry(fn, retries = 3, delay = 1000) {
+//   let lastErr;
+//   for (let i = 0; i < retries; i++) {
+//     try {
+//       return await fn();
+//     } catch (err) {
+//       lastErr = err;
+//       await new Promise((r) => setTimeout(r, delay));
+//     }
+//   }
+//   throw lastErr;
+// }
+
+// // ---------- MONGO ----------
+// mongoose
+//   .connect(process.env.MONGO_URI)
+//   .then(() => console.log("MongoDB connected"))
+//   .catch(console.error);
+
+// // ---------- MODELS ----------
+// const registrationSchema = new mongoose.Schema({
+//   fullName: String,
+//   email: String,
+//   phone: String,
+//   attendees: Number,
+//   createdAt: { type: Date, default: Date.now },
+// });
+// const Registration = mongoose.model("Registration", registrationSchema);
+
+// // ---------- AUTH ----------
+// const requireAdmin = (role) => (req, res, next) => {
+//   const auth = req.headers.authorization;
+//   if (!auth) return res.status(401).json({ error: "No token" });
+
+//   try {
+//     const token = auth.split(" ")[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     if (decoded.role !== role)
+//       return res.status(403).json({ error: "Forbidden" });
+//     req.admin = decoded;
+//     next();
+//   } catch {
+//     res.status(401).json({ error: "Invalid token" });
+//   }
+// };
+
+// // ---------- HEALTH ----------
+// app.get("/health", (_, res) => res.json({ ok: true }));
+
+// // ---------- CHECKOUT ----------
+// app.post("/create-checkout-session", async (req, res) => {
+//   const { amount, category, email, frequency } = req.body;
+
+//   if (!amount || !email)
+//     return res.status(400).json({ error: "Missing fields" });
+
+//   const session = await stripe.checkout.sessions.create({
+//     mode: frequency === "monthly" ? "subscription" : "payment",
+//     customer_email: email,
+//     subscription_data:
+//       frequency === "monthly"
+//         ? {
+//             metadata: {
+//               category,
+//               frequency,
+//             },
+//           }
+//         : undefined,
+
+//     line_items: [
+//       {
+//         price_data: {
+//           currency: "cad",
+//           unit_amount: Math.round(Number(amount) * 100),
+//           recurring:
+//             frequency === "monthly" ? { interval: "month" } : undefined,
+//           product_data: { name: `Giving - ${category}` },
+//         },
+//         quantity: 1,
+//       },
+//     ],
+//     success_url: `${process.env.CLIENT_URL}/success`,
+//     cancel_url: `${process.env.CLIENT_URL}/cancel`,
+//   });
+
+//   await Donation.create({
+//     email,
+//     amount,
+//     category,
+//     frequency,
+//     stripeSessionId: session.id,
+//     status: "pending",
+//   });
+
+//   res.json({ url: session.url });
+// });
+
+// // ---------- STRIPE WEBHOOK ----------
+// app.post(
+//   "/webhook",
+//   express.raw({ type: "application/json" }),
+//   async (req, res) => {
+//     const sig = req.headers["stripe-signature"];
+//     let event;
+
+//     try {
+//       event = stripe.webhooks.constructEvent(
+//         req.body,
+//         sig,
+//         process.env.STRIPE_WEBHOOK_SECRET
+//       );
+//     } catch (err) {
+//       return res.status(400).send(`Webhook Error: ${err.message}`);
+//     }
+
+//     try {
+//       if (event.type === "checkout.session.completed") {
+//         const session = event.data.object;
+
+//         // 🔥 Skip subscriptions
+//         if (session.mode === "subscription") return;
+
+//         await Donation.updateMany(
+//           { stripeSessionId: session.id },
+//           {
+//             status: "completed",
+//             stripeCustomerId: session.customer,
+//           }
+//         );
+//       }
+
+//       if (event.type === "invoice.paid") {
+//         const invoice = event.data.object;
+
+//         const subscription = await stripe.subscriptions.retrieve(
+//           invoice.subscription
+//         );
+
+//         await Donation.create({
+//           email: invoice.customer_email,
+//           amount: invoice.amount_paid / 100,
+//           category: subscription.metadata.category || "general giving",
+//           frequency: "monthly",
+//           stripeCustomerId: invoice.customer,
+//           stripeSessionId: invoice.subscription,
+//           status: "completed",
+//         });
+//       }
+
+//       res.json({ received: true });
+//     } catch (err) {
+//       res.status(500).json({ error: "Webhook failed" });
+//     }
+//   }
+// );
+
+// // ---------- ADMIN LOGIN ----------
+// app.post("/admin/login", async (req, res) => {
+//   const { email, password } = req.body;
+
+//   if (!bcrypt.compareSync(password, process.env.ADMIN_PASSWORD_HASH))
+//     return res.status(401).json({ error: "Invalid credentials" });
+
+//   const role =
+//     email === process.env.GIVING_ADMIN_EMAIL
+//       ? "giving-admin"
+//       : email === process.env.REGISTRATION_ADMIN_EMAIL
+//       ? "registration-admin"
+//       : null;
+
+//   if (!role) return res.status(401).json({ error: "Not admin" });
+
+//   const token = jwt.sign({ email, role }, process.env.JWT_SECRET, {
+//     expiresIn: "8h",
+//   });
+
+//   res.json({ token, role });
+// });
+
+// // ---------- GIVING DASHBOARD ----------
+// app.get(
+//   "/admin/giving-dashboard",
+//   requireAdmin("giving-admin"),
+//   async (req, res) => {
+//     const { category, search } = req.query;
+
+//     const query = { status: "completed" };
+
+//     // ✅ Filter by category
+//     if (category && category !== "all") {
+//       query.category = category;
+//     }
+
+//     // ✅ Filter by donor (email for now)
+//     if (search) {
+//       query.email = { $regex: search, $options: "i" };
+//     }
+
+//     const donations = await Donation.find(query);
+
+//     const totalDonations = donations.reduce((s, d) => s + d.amount, 0);
+
+//     // Monthly totals
+//     const monthlyTotals = Object.values(
+//       donations.reduce((acc, d) => {
+//         const m = d.createdAt.toISOString().slice(0, 7);
+//         acc[m] = acc[m] || { month: m, total: 0 };
+//         acc[m].total += d.amount;
+//         return acc;
+//       }, {})
+//     );
+
+//     // ✅ Total donors (unique emails)
+//     const totalDonors = new Set(donations.map((d) => d.email)).size;
+
+//     // ✅ Recurring donors (unique emails with monthly frequency)
+//     const recurringDonors = new Set(
+//       donations.filter((d) => d.frequency === "monthly").map((d) => d.email)
+//     ).size;
+
+//     // Active subscriptions (already correct)
+//     const activeSubscriptionsCount = donations.filter(
+//       (d) => d.frequency === "monthly"
+//     ).length;
+
+//     // const activeSubscriptionsCount = await Donation.distinct(
+//     //   "stripeCustomerId",
+//     //   { frequency: "monthly", status: "donations" }
+//     // ).then((r) => r.length);
+
+//     res.json({
+//       totalDonations,
+//       monthlyTotals,
+//       activeSubscriptionsCount,
+//       totalDonors,
+//       recurringDonors,
+//     });
+//   }
+// );
+
+// // ---------- SSE ----------
+// app.get("/admin/recent-donations/stream", async (req, res) => {
+//   const token = req.query.token;
+//   if (!token) return res.sendStatus(401);
+
+//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//   if (decoded.role !== "giving-admin") return res.sendStatus(403);
+
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache");
+
+//   const send = async () => {
+//     const data = await Donation.find({ status: "completed" })
+//       .sort({ createdAt: -1 })
+//       .limit(50);
+//     res.write(`data: ${JSON.stringify(data)}\n\n`);
+//   };
+
+//   send();
+
+//   const stream = Donation.watch([], { fullDocument: "updateLookup" });
+//   stream.on("change", (c) => {
+//     if (c.fullDocument?.status === "completed") {
+//       res.write(`data: ${JSON.stringify([c.fullDocument])}\n\n`);
+//     }
+//   });
+
+//   req.on("close", () => stream.close());
+// });
+
+// // app.use("/api/spotify", spotifyRoutes);
+
+// // ---------- START ----------
+// app.listen(3000, () => console.log("Server running on 3000"));
+
+// ***********VERSION 7 – FULL SERVER.JS****************
 import express from "express";
 import Stripe from "stripe";
 import cors from "cors";
@@ -1552,6 +1871,8 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import Donation from "./models/Donation.js";
+// ✅ NEW: import Registration model from models folder
+import Registration from "./models/Registration.js";
 // import spotifyRoutes from "./spotify.js";
 
 dotenv.config();
@@ -1607,14 +1928,8 @@ mongoose
   .catch(console.error);
 
 // ---------- MODELS ----------
-const registrationSchema = new mongoose.Schema({
-  fullName: String,
-  email: String,
-  phone: String,
-  attendees: Number,
-  createdAt: { type: Date, default: Date.now },
-});
-const Registration = mongoose.model("Registration", registrationSchema);
+// ✅ REMOVED inline registrationSchema + mongoose.model("Registration"...)
+// ✅ Registration now comes from ./models/Registration.js
 
 // ---------- AUTH ----------
 const requireAdmin = (role) => (req, res, next) => {
@@ -1635,6 +1950,37 @@ const requireAdmin = (role) => (req, res, next) => {
 
 // ---------- HEALTH ----------
 app.get("/health", (_, res) => res.json({ ok: true }));
+
+// ✅✅✅ ---------- REGISTRATION (MODEL-BASED) ----------
+app.post("/register", async (req, res) => {
+  try {
+    const { fullName, email, phone, attendees } = req.body;
+
+    if (!fullName || !email || !phone) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    const attendeesNum = Number(attendees ?? 1);
+    if (Number.isNaN(attendeesNum) || attendeesNum < 1) {
+      return res.status(400).json({ message: "Attendees must be 1 or more." });
+    }
+
+    await Registration.create({
+      fullName,
+      email,
+      phone,
+      attendees: attendeesNum,
+    });
+
+    return res.status(201).json({
+      message: "Registration received! We look forward to seeing you.",
+    });
+  } catch (err) {
+    console.error("Registration error:", err);
+    return res.status(500).json({ message: "Server error. Try again later." });
+  }
+});
+// ✅✅✅ ---------------------------------------------
 
 // ---------- CHECKOUT ----------
 app.post("/create-checkout-session", async (req, res) => {
@@ -1766,6 +2112,112 @@ app.post("/admin/login", async (req, res) => {
   res.json({ token, role });
 });
 
+// ---------- REGISTRATION DASHBOARD ----------
+app.get(
+  "/admin/dashboard",
+  requireAdmin("registration-admin"),
+  async (req, res) => {
+    try {
+      const registrations = await Registration.find();
+
+      const totalAttendees = registrations.reduce(
+        (sum, r) => sum + (r.attendees || 0),
+        0
+      );
+
+      const chartMap = {};
+      registrations.forEach((r) => {
+        if (!r.createdAt) return;
+        const day = r.createdAt.toISOString().split("T")[0];
+        chartMap[day] = (chartMap[day] || 0) + (r.attendees || 0);
+      });
+
+      const chartData = Object.entries(chartMap)
+        .map(([_id, attendees]) => ({ _id, attendees }))
+        .sort((a, b) => new Date(a._id) - new Date(b._id));
+
+      res.json({
+        totalRegistrations: registrations.length,
+        totalAttendees,
+        chartData,
+      });
+    } catch (err) {
+      console.error("Registration dashboard error:", err);
+      res.status(500).json({ error: "Failed to load registration dashboard" });
+    }
+  }
+);
+
+// ---------- REGISTRATION CSV EXPORT ----------
+app.get(
+  "/admin/registrations.csv",
+  requireAdmin("registration-admin"),
+  async (req, res) => {
+    try {
+      const registrations = await Registration.find()
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // CSV escaping (handles commas, quotes, newlines)
+      const esc = (v) => {
+        const s = String(v ?? "");
+        return `"${s.replace(/"/g, '""')}"`;
+      };
+
+      const header = [
+        "Full Name",
+        "Email Address",
+        "Phone Number",
+        "Number of Attendees",
+        "Created At",
+      ];
+
+      const rows = registrations.map((r) => [
+        esc(r.fullName),
+        esc(r.email),
+        esc(r.phone),
+        esc(r.attendees),
+        esc(r.createdAt ? new Date(r.createdAt).toISOString() : ""),
+      ]);
+
+      const csv = [header.join(","), ...rows.map((row) => row.join(","))].join(
+        "\n"
+      );
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="registrations.csv"`
+      );
+
+      return res.status(200).send(csv);
+    } catch (err) {
+      console.error("CSV export error:", err);
+      return res.status(500).json({ error: "Failed to export CSV" });
+    }
+  }
+);
+
+// ---------- RECENT REGISTRATIONS ----------
+app.get(
+  "/admin/registrations",
+  requireAdmin("registration-admin"),
+  async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit || 20), 200);
+      const registrations = await Registration.find()
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+
+      res.json({ registrations });
+    } catch (err) {
+      console.error("Recent registrations error:", err);
+      res.status(500).json({ error: "Failed to fetch registrations" });
+    }
+  }
+);
+
 // ---------- GIVING DASHBOARD ----------
 app.get(
   "/admin/giving-dashboard",
@@ -1811,11 +2263,6 @@ app.get(
     const activeSubscriptionsCount = donations.filter(
       (d) => d.frequency === "monthly"
     ).length;
-
-    // const activeSubscriptionsCount = await Donation.distinct(
-    //   "stripeCustomerId",
-    //   { frequency: "monthly", status: "donations" }
-    // ).then((r) => r.length);
 
     res.json({
       totalDonations,
