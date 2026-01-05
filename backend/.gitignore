@@ -25,3 +25,9 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
