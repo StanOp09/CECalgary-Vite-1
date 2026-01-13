@@ -15,6 +15,7 @@ export function getAdminRedirectPath() {
 
     if (decoded.role === "registration-admin") return "/admin";
     if (decoded.role === "giving-admin") return "/admin/giving-dashboard";
+    if (decoded.role === "outreach-admin") return "/admin/community-map";
 
     return null;
   } catch {

@@ -1,18 +1,32 @@
+import { XCircle } from "lucide-react";
+
 export default function Cancel() {
   return (
-    <div className="w-full min-h-screen flex flex-col justify-center items-center bg-red-50 p-6">
-      <h1 className="text-3xl font-bold text-red-700 mb-4">
-        Payment Cancelled
-      </h1>
-      <p className="text-lg text-red-800 mb-6 text-center">
-        You did not complete your donation. You can try again anytime.
-      </p>
-      <a
-        href="/giving"
-        className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition"
-      >
-        Back to Giving Page
-      </a>
-    </div>
+    <section className="w-full min-h-screen bg-gradient-to-b from-rose-50 via-white to-gray-100 flex items-center justify-center px-4 py-20">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 sm:p-10 text-center">
+        {/* Icon */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-rose-100 text-rose-600 rounded-full p-4">
+            <XCircle className="h-10 w-10" />
+          </div>
+        </div>
+
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+          Giving Not Completed
+        </h1>
+
+        <p className="text-gray-600 mb-8">
+          Your donation wasn’t completed. No worries — you can try again anytime
+          when you’re ready.
+        </p>
+
+        <a
+          href="/giving"
+          className="inline-flex items-center justify-center w-full bg-gradient-to-r from-rose-500 to-red-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+        >
+          Return to Giving Page
+        </a>
+      </div>
+    </section>
   );
 }

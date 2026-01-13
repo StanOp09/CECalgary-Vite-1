@@ -20,6 +20,7 @@ import AboutPage from "./pages/About.jsx";
 import LiveServicePage from "./pages/LiveService.jsx";
 import SermonsPage from "./pages/Sermons.jsx";
 import ContactPage from "./pages/Contact.jsx";
+import AdminCommunityMap from "./pages/AdminCommunityMap.jsx";
 
 const router = createBrowserRouter([
   {
@@ -45,10 +46,10 @@ const router = createBrowserRouter([
         path: "/contact",
         element: <ContactPage />,
       },
-      {
-        path: "/about",
-        element: <AboutPage />,
-      },
+      // {
+      //   path: "/about",
+      //   element: <AboutPage />,
+      // },
       {
         path: "/giving",
         element: <Giving />,
@@ -79,6 +80,14 @@ const router = createBrowserRouter([
         element: (
           <AdminProtectedRoute allowedRole="giving-admin">
             <GivingDashboard />
+          </AdminProtectedRoute>
+        ),
+      },
+      {
+        path: "/admin/community-map",
+        element: (
+          <AdminProtectedRoute allowedRole="outreach-admin">
+            <AdminCommunityMap />
           </AdminProtectedRoute>
         ),
       },

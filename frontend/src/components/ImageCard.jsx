@@ -1,76 +1,4 @@
-// import React, { useState, useEffect } from "react";
-
-// const ImageCard = ({ imageSrc, title, description }) => {
-//   const [timeLeft, setTimeLeft] = useState({
-//     days: 0,
-//     hours: 0,
-//     minutes: 0,
-//     seconds: 0,
-//   });
-
-//   useEffect(() => {
-//     const targetDate = new Date(
-//       `${new Date().getFullYear()}-12-31T23:59:59`
-//     ).getTime();
-
-//     const interval = setInterval(() => {
-//       const now = new Date().getTime();
-//       const distance = targetDate - now;
-
-//       if (distance < 0) {
-//         clearInterval(interval);
-//         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-//         return;
-//       }
-
-//       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-//       const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
-//       const minutes = Math.floor((distance / (1000 * 60)) % 60);
-//       const seconds = Math.floor((distance / 1000) % 60);
-
-//       setTimeLeft({ days, hours, minutes, seconds });
-//     }, 1000);
-
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   return (
-//     <div
-//       className="w-full h-64 rounded-lg shadow-lg overflow-hidden relative flex items-center px-8"
-//       style={{
-//         backgroundImage: `url(${imageSrc})`,
-//         backgroundSize: "cover",
-//         backgroundPosition: "center",
-//       }}
-//     >
-//       {/* Overlay for text readability */}
-//       <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg"></div>
-
-//       {/* Content */}
-//       <div className="relative flex w-full justify-between items-center text-white">
-//         {/* Title on left/center */}
-//         <div className="text-left text-3xl font-bold">
-//           {title}
-//           {description && (
-//             <p className="text-lg font-normal mt-1">{description}</p>
-//           )}
-//         </div>
-
-//         {/* Countdown on right with spacing */}
-//         <div className="flex gap-8 text-3xl font-bold text-right">
-//           <span>{timeLeft.days}D</span>
-//           <span>{timeLeft.hours}H</span>
-//           <span>{timeLeft.minutes}M</span>
-//           <span>{timeLeft.seconds}S</span>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ImageCard;
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const ImageCard = ({ imageSrc, title, description }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -94,7 +22,7 @@ const ImageCard = ({ imageSrc, title, description }) => {
       const now = new Date().getTime();
       const distance = targetDate - now;
 
-      if (distance < 0) {
+      if (distance <= 0) {
         clearInterval(interval);
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
@@ -111,30 +39,64 @@ const ImageCard = ({ imageSrc, title, description }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const CountdownBox = ({ label, value }) => (
+    <div className="min-w-[64px] sm:min-w-[80px] text-center rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3 py-2 shadow-lg">
+      <div className="text-2xl sm:text-3xl font-extrabold leading-none">
+        {String(value).padStart(2, "0")}
+      </div>
+      <div className="text-[10px] sm:text-xs uppercase tracking-widest text-white/80 mt-1">
+        {label}
+      </div>
+    </div>
+  );
+
   return (
     <div
-      className="w-full rounded-lg shadow-lg overflow-hidden relative flex flex-col sm:flex-row items-center sm:items-center px-4 sm:px-8 py-6 sm:py-0"
+      className="relative w-full overflow-hidden rounded-2xl shadow-2xl"
       style={{
         backgroundImage: `url(${imageSrc})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg"></div>
+      {/* overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-      <div className="relative flex flex-col sm:flex-row w-full justify-between items-center text-white">
-        <div className="text-center sm:text-left text-2xl sm:text-3xl font-bold">
-          {title}
-          {description && (
-            <p className="text-sm sm:text-lg font-normal mt-1">{description}</p>
-          )}
-        </div>
+      <div className="relative px-5 sm:px-10 py-10 sm:py-14">
+        <div className="flex flex-col lg:flex-row items-center lg:items-end justify-between gap-8 text-white">
+          {/* Title block */}
+          <div className="text-center lg:text-left max-w-2xl">
+            <p className="text-xs sm:text-sm uppercase tracking-[0.25em] text-white/75">
+              Special Program
+            </p>
 
-        <div className="flex gap-4 sm:gap-8 text-xl sm:text-3xl font-bold mt-4 sm:mt-0">
-          <span>{timeLeft.days}D</span>
-          <span>{timeLeft.hours}H</span>
-          <span>{timeLeft.minutes}M</span>
-          <span>{timeLeft.seconds}S</span>
+            <h1 className="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight">
+              {title}
+            </h1>
+
+            {description && (
+              <p className="mt-3 text-sm sm:text-lg text-white/80 leading-relaxed">
+                {description}
+              </p>
+            )}
+          </div>
+
+          {/* Countdown */}
+          <div className="flex flex-wrap justify-center lg:justify-end gap-3 sm:gap-4">
+            <div aria-label="days remaining">
+              <CountdownBox label="Days" value={timeLeft.days} />
+            </div>
+            <div aria-label="hours remaining">
+              <CountdownBox label="Hours" value={timeLeft.hours} />
+            </div>
+            <div aria-label="minutes remaining">
+              <CountdownBox label="Minutes" value={timeLeft.minutes} />
+            </div>
+            <div aria-label="seconds remaining">
+              <CountdownBox label="Seconds" value={timeLeft.seconds} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

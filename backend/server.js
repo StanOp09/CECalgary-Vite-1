@@ -1873,6 +1873,9 @@ import bcrypt from "bcryptjs";
 import Donation from "./models/Donation.js";
 // ✅ NEW: import Registration model from models folder
 import Registration from "./models/Registration.js";
+import Community from "./models/Community.js";
+import CommunityAssignment from "./models/CommunityAssignment.js";
+
 // import spotifyRoutes from "./spotify.js";
 
 dotenv.config();
@@ -1894,7 +1897,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -1949,6 +1952,37 @@ const requireAdmin = (role) => (req, res, next) => {
   }
 };
 
+const ZERO_DECIMAL = new Set([
+  "bif",
+  "clp",
+  "djf",
+  "gnf",
+  "jpy",
+  "kmf",
+  "krw",
+  "mga",
+  "pyg",
+  "rwf",
+  "ugx",
+  "vnd",
+  "vuv",
+  "xaf",
+  "xof",
+  "xpf",
+]);
+
+function toMinorUnits(amountMajor, currency) {
+  const n = Number(amountMajor);
+  if (!Number.isFinite(n)) return 0;
+  return ZERO_DECIMAL.has(currency) ? Math.round(n) : Math.round(n * 100);
+}
+
+function fromMinorUnits(amountMinor, currency) {
+  const n = Number(amountMinor);
+  if (!Number.isFinite(n)) return 0;
+  return ZERO_DECIMAL.has(currency) ? n : n / 100;
+}
+
 // ---------- HEALTH ----------
 app.get("/health", (_, res) => res.json({ ok: true }));
 
@@ -1984,51 +2018,263 @@ app.post("/register", async (req, res) => {
 // ✅✅✅ ---------------------------------------------
 
 // ---------- CHECKOUT ----------
+// app.post("/create-checkout-session", async (req, res) => {
+//   const { amount, category, email, frequency } = req.body;
+
+//   if (!amount || !email)
+//     return res.status(400).json({ error: "Missing fields" });
+
+//   const session = await stripe.checkout.sessions.create({
+//     mode: frequency === "monthly" ? "subscription" : "payment",
+//     customer_email: email,
+//     subscription_data:
+//       frequency === "monthly"
+//         ? {
+//             metadata: {
+//               category,
+//               frequency,
+//             },
+//           }
+//         : undefined,
+
+//     line_items: [
+//       {
+//         price_data: {
+//           currency: "cad",
+//           unit_amount: Math.round(Number(amount) * 100),
+//           recurring:
+//             frequency === "monthly" ? { interval: "month" } : undefined,
+//           product_data: { name: `Giving - ${category}` },
+//         },
+//         quantity: 1,
+//       },
+//     ],
+//     success_url: `${process.env.CLIENT_URL}/success`,
+//     cancel_url: `${process.env.CLIENT_URL}/cancel`,
+//   });
+
+//   await Donation.create({
+//     email,
+//     amount,
+//     category,
+//     frequency,
+//     stripeSessionId: session.id,
+//     status: "pending",
+//   });
+
+//   res.json({ url: session.url });
+// });
+
+// app.post("/create-checkout-session", async (req, res) => {
+//   const { amount, category, email, frequency } = req.body;
+
+//   // 🔒 VALIDATE FREQUENCY HERE
+//   const allowed = new Set(["one-time", "weekly", "biweekly", "monthly"]);
+//   if (!allowed.has(frequency)) {
+//     return res.status(400).json({ error: "Invalid frequency" });
+//   }
+
+//   if (!amount || !email || !category || !frequency) {
+//     return res.status(400).json({ error: "Missing fields" });
+//   }
+
+//   const amt = Number(amount);
+//   if (!Number.isFinite(amt) || amt <= 0) {
+//     return res.status(400).json({ error: "Invalid amount" });
+//   }
+
+//   const isRecurring = frequency !== "one-time";
+
+//   // Map your frequency -> Stripe recurring config
+//   const recurring =
+//     frequency === "monthly"
+//       ? { interval: "month" }
+//       : frequency === "weekly"
+//       ? { interval: "week", interval_count: 1 }
+//       : frequency === "biweekly"
+//       ? { interval: "week", interval_count: 2 }
+//       : null;
+
+//   const session = await stripe.checkout.sessions.create({
+//     mode: isRecurring ? "subscription" : "payment",
+//     customer_email: email,
+
+//     subscription_data: isRecurring
+//       ? {
+//           metadata: { category, frequency }, // store both
+//         }
+//       : undefined,
+
+//     line_items: [
+//       {
+//         price_data: {
+//           currency: "cad",
+//           unit_amount: Math.round(amt * 100),
+//           recurring: isRecurring ? recurring : undefined,
+//           product_data: { name: `Giving - ${category}` },
+//         },
+//         quantity: 1,
+//       },
+//     ],
+
+//     success_url: `${process.env.CLIENT_URL}/success`,
+//     cancel_url: `${process.env.CLIENT_URL}/cancel`,
+//   });
+
+//   await Donation.create({
+//     email,
+//     amount: amt,
+//     category,
+//     frequency,
+//     stripeSessionId: session.id,
+//     status: "pending",
+//   });
+
+//   res.json({ url: session.url });
+// });
 app.post("/create-checkout-session", async (req, res) => {
-  const { amount, category, email, frequency } = req.body;
+  try {
+    const { amount, category, email, frequency, currency } = req.body;
 
-  if (!amount || !email)
-    return res.status(400).json({ error: "Missing fields" });
+    if (!currency) return res.status(400).json({ error: "Missing currency" });
 
-  const session = await stripe.checkout.sessions.create({
-    mode: frequency === "monthly" ? "subscription" : "payment",
-    customer_email: email,
-    subscription_data:
-      frequency === "monthly"
-        ? {
-            metadata: {
-              category,
-              frequency,
-            },
-          }
+    // Stripe expects lowercase currency codes:
+    const curr = String(currency).toLowerCase();
+
+    // Keep this list consistent with your frontend ALL list (or store it centrally)
+    const allowedCurrencies = new Set([
+      "usd",
+      "eur",
+      "jpy",
+      "gbp",
+      "aud",
+      "cad",
+      "chf",
+      "cny",
+      "hkd",
+      "nzd",
+      "inr",
+      "ngn",
+      "kes",
+      "ghs",
+      "zar",
+      "sgd",
+      "sek",
+      "nok",
+      "dkk",
+      "pln",
+      "mxn",
+      "brl",
+    ]);
+
+    if (!allowedCurrencies.has(curr)) {
+      return res.status(400).json({ error: "Unsupported currency" });
+    }
+
+    const allowed = new Set(["one-time", "weekly", "biweekly", "monthly"]);
+    if (!allowed.has(frequency)) {
+      return res.status(400).json({ error: "Invalid frequency" });
+    }
+
+    if (!amount || !email || !category || !frequency) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    const isRecurring = frequency !== "one-time";
+
+    const recurringMap = {
+      monthly: { interval: "month" },
+      weekly: { interval: "week", interval_count: 1 },
+      biweekly: { interval: "week", interval_count: 2 },
+    };
+
+    const recurring = isRecurring ? recurringMap[frequency] : undefined;
+
+    // ✅ safety: should never be undefined for recurring modes
+    if (isRecurring && !recurring) {
+      return res.status(400).json({ error: "Invalid recurring config" });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: isRecurring ? "subscription" : "payment",
+      customer_email: email,
+      subscription_data: isRecurring
+        ? { metadata: { category, frequency } }
         : undefined,
-
-    line_items: [
-      {
-        price_data: {
-          currency: "cad",
-          unit_amount: Math.round(Number(amount) * 100),
-          recurring:
-            frequency === "monthly" ? { interval: "month" } : undefined,
-          product_data: { name: `Giving - ${category}` },
+      line_items: [
+        {
+          // price_data: {
+          //   currency: curr,
+          //   unit_amount: Math.round(amt * 100),
+          //   recurring,
+          //   product_data: { name: `Giving - ${category}` },
+          // },
+          price_data: {
+            currency: curr,
+            unit_amount: toMinorUnits(amt, curr), // ✅ see helper below
+            recurring,
+            product_data: { name: `Giving - ${category}` },
+          },
+          quantity: 1,
         },
-        quantity: 1,
-      },
-    ],
-    success_url: `${process.env.CLIENT_URL}/success`,
-    cancel_url: `${process.env.CLIENT_URL}/cancel`,
-  });
+      ],
+      success_url: `${process.env.CLIENT_URL}/success`,
+      cancel_url: `${process.env.CLIENT_URL}/cancel`,
+    });
 
-  await Donation.create({
-    email,
-    amount,
-    category,
-    frequency,
-    stripeSessionId: session.id,
-    status: "pending",
-  });
+    await Donation.create({
+      email,
+      amount: amt,
+      currency: currency.toUpperCase(),
+      category,
+      frequency,
+      stripeSessionId: session.id,
+      status: "pending",
+    });
 
-  res.json({ url: session.url });
+    return res.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    return res.status(500).json({ error: err?.message || "Checkout failed" });
+  }
+});
+
+// ---------- STRIPE MANAGE GIVINGS ----------
+app.post("/create-portal-session", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid email is required" });
+    }
+
+    // 1) Find the Stripe customer by email
+    const customers = await stripe.customers.list({ email, limit: 1 });
+    const customer = customers.data?.[0];
+
+    if (!customer) {
+      return res.status(404).json({
+        error:
+          "No Stripe customer found for this email. Make a donation first.",
+      });
+    }
+
+    // 2) Create the Customer Portal session
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customer.id,
+      return_url: `${process.env.CLIENT_URL}/giving`,
+    });
+
+    return res.json({ url: portalSession.url });
+  } catch (err) {
+    console.error("Portal session error:", err);
+    return res.status(500).json({ error: err?.message || "Portal failed" });
+  }
 });
 
 // ---------- STRIPE WEBHOOK ----------
@@ -2054,7 +2300,14 @@ app.post(
         const session = event.data.object;
 
         // 🔥 Skip subscriptions
-        if (session.mode === "subscription") return;
+        if (session.mode === "subscription") {
+          // do nothing here, invoice.paid will handle it
+        } else {
+          await Donation.updateMany(
+            { stripeSessionId: session.id },
+            { status: "completed", stripeCustomerId: session.customer }
+          );
+        }
 
         await Donation.updateMany(
           { stripeSessionId: session.id },
@@ -2065,6 +2318,24 @@ app.post(
         );
       }
 
+      // if (event.type === "invoice.paid") {
+      //   const invoice = event.data.object;
+
+      //   const subscription = await stripe.subscriptions.retrieve(
+      //     invoice.subscription
+      //   );
+
+      //   await Donation.create({
+      //     email: invoice.customer_email,
+      //     amount: invoice.amount_paid / 100,
+      //     category: subscription.metadata.category || "general giving",
+      //     frequency: "monthly",
+      //     stripeCustomerId: invoice.customer,
+      //     stripeSessionId: invoice.subscription,
+      //     status: "completed",
+      //   });
+      // }
+
       if (event.type === "invoice.paid") {
         const invoice = event.data.object;
 
@@ -2073,10 +2344,18 @@ app.post(
         );
 
         await Donation.create({
+          // email: invoice.customer_email,
+          // amount: invoice.amount_paid / 100,
+          // category: subscription.metadata.category || "general giving",
+          // frequency: subscription.metadata.frequency || "monthly", // ✅ now dynamic
+          // stripeCustomerId: invoice.customer,
+          // stripeSessionId: invoice.subscription,
+          // status: "completed",
           email: invoice.customer_email,
-          amount: invoice.amount_paid / 100,
+          amount: fromMinorUnits(invoice.amount_paid, invoice.currency),
+          currency: invoice.currency.toUpperCase(),
           category: subscription.metadata.category || "general giving",
-          frequency: "monthly",
+          frequency: subscription.metadata.frequency || "monthly",
           stripeCustomerId: invoice.customer,
           stripeSessionId: invoice.subscription,
           status: "completed",
@@ -2102,6 +2381,8 @@ app.post("/admin/login", async (req, res) => {
       ? "giving-admin"
       : email === process.env.REGISTRATION_ADMIN_EMAIL
       ? "registration-admin"
+      : email === process.env.OUTREACH_ADMIN_EMAIL
+      ? "outreach-admin"
       : null;
 
   if (!role) return res.status(401).json({ error: "Not admin" });
@@ -2220,58 +2501,195 @@ app.get(
 );
 
 // ---------- GIVING DASHBOARD ----------
+// app.get(
+//   "/admin/giving-dashboard",
+//   requireAdmin("giving-admin"),
+//   async (req, res) => {
+//     const { category, search } = req.query;
+
+//     const query = { status: "completed" };
+
+//     // ✅ Filter by category
+//     if (category && category !== "all") {
+//       query.category = category;
+//     }
+
+//     // ✅ Filter by donor (email for now)
+//     if (search) {
+//       query.email = { $regex: search, $options: "i" };
+//     }
+
+//     const donations = await Donation.find(query);
+
+//     const totalDonations = donations.reduce((s, d) => s + d.amount, 0);
+
+//     // Monthly totals
+//     const monthlyTotals = Object.values(
+//       donations.reduce((acc, d) => {
+//         const m = d.createdAt.toISOString().slice(0, 7);
+//         acc[m] = acc[m] || { month: m, total: 0 };
+//         acc[m].total += d.amount;
+//         return acc;
+//       }, {})
+//     );
+
+//     // ✅ Total donors (unique emails)
+//     const totalDonors = new Set(donations.map((d) => d.email)).size;
+
+//     const isRecurring = (f) => ["weekly", "biweekly", "monthly"].includes(f);
+
+//     const recurringDonors = new Set(
+//       donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email)
+//     ).size;
+
+//     const activeSubscriptionsCount = donations.filter((d) =>
+//       isRecurring(d.frequency)
+//     ).length;
+
+//     // // ✅ Recurring donors (unique emails with monthly frequency)
+//     // const recurringDonors = new Set(
+//     //   donations.filter((d) => d.frequency === "monthly").map((d) => d.email)
+//     // ).size;
+
+//     // // Active subscriptions (already correct)
+//     // const activeSubscriptionsCount = donations.filter(
+//     //   (d) => d.frequency === "monthly"
+//     // ).length;
+
+//     res.json({
+//       totalDonations,
+//       monthlyTotals,
+//       activeSubscriptionsCount,
+//       totalDonors,
+//       recurringDonors,
+//     });
+//   }
+// );
 app.get(
   "/admin/giving-dashboard",
   requireAdmin("giving-admin"),
   async (req, res) => {
-    const { category, search } = req.query;
+    try {
+      const { category, search, currency } = req.query;
 
-    const query = { status: "completed" };
+      // Base filter
+      const match = { status: "completed" };
 
-    // ✅ Filter by category
-    if (category && category !== "all") {
-      query.category = category;
-    }
+      // Category filter
+      if (category && category !== "all") {
+        match.category = category;
+      }
 
-    // ✅ Filter by donor (email for now)
-    if (search) {
-      query.email = { $regex: search, $options: "i" };
-    }
+      // Donor filter (email)
+      if (search) {
+        match.email = { $regex: String(search), $options: "i" };
+      }
 
-    const donations = await Donation.find(query);
+      // Currency filter
+      // (store currency in DB as uppercase, e.g., "CAD")
+      if (currency && currency !== "all") {
+        match.currency = String(currency).toUpperCase();
+      }
 
-    const totalDonations = donations.reduce((s, d) => s + d.amount, 0);
+      const isRecurring = (f) => ["weekly", "biweekly", "monthly"].includes(f);
 
-    // Monthly totals
-    const monthlyTotals = Object.values(
-      donations.reduce((acc, d) => {
-        const m = d.createdAt.toISOString().slice(0, 7);
-        acc[m] = acc[m] || { month: m, total: 0 };
-        acc[m].total += d.amount;
+      // Pull matching donations once (used for donor counts)
+      const donations = await Donation.find(match).lean();
+
+      // ---- Totals by currency ----
+      // returns: [{ _id: "CAD", total: 1234.5 }, ...]
+      const totalsByCurrencyAgg = await Donation.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: "$currency",
+            total: { $sum: "$amount" }, // amount stored as major units
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      const totalsByCurrency = totalsByCurrencyAgg.reduce((acc, row) => {
+        acc[row._id || "UNKNOWN"] = {
+          total: Number(row.total || 0),
+          count: Number(row.count || 0),
+        };
         return acc;
-      }, {})
-    );
+      }, {});
 
-    // ✅ Total donors (unique emails)
-    const totalDonors = new Set(donations.map((d) => d.email)).size;
+      // ---- Monthly totals grouped by currency ----
+      // returns rows like:
+      // { _id: { currency: "CAD", month: "2026-01" }, total: 200 }
+      const monthlyTotalsByCurrencyAgg = await Donation.aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: {
+              currency: "$currency",
+              month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            },
+            total: { $sum: "$amount" },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            currency: "$_id.currency",
+            month: "$_id.month",
+            total: 1,
+          },
+        },
+        { $sort: { currency: 1, month: 1 } },
+      ]);
 
-    // ✅ Recurring donors (unique emails with monthly frequency)
-    const recurringDonors = new Set(
-      donations.filter((d) => d.frequency === "monthly").map((d) => d.email)
-    ).size;
+      // Shape into: { CAD: [{month,total},...], USD: [...] }
+      const monthlyTotalsByCurrency = monthlyTotalsByCurrencyAgg.reduce(
+        (acc, row) => {
+          const c = row.currency || "UNKNOWN";
+          acc[c] = acc[c] || [];
+          acc[c].push({ month: row.month, total: Number(row.total || 0) });
+          return acc;
+        },
+        {}
+      );
 
-    // Active subscriptions (already correct)
-    const activeSubscriptionsCount = donations.filter(
-      (d) => d.frequency === "monthly"
-    ).length;
+      // ---- Currency options (for dropdowns) ----
+      const currencyOptionsAgg = await Donation.aggregate([
+        { $match: { status: "completed" } },
+        { $group: { _id: "$currency" } },
+        { $sort: { _id: 1 } },
+      ]);
+      const currencyOptions = currencyOptionsAgg
+        .map((r) => r._id)
+        .filter(Boolean);
 
-    res.json({
-      totalDonations,
-      monthlyTotals,
-      activeSubscriptionsCount,
-      totalDonors,
-      recurringDonors,
-    });
+      // ---- Donor metrics (safe with currency filter applied) ----
+      const totalDonors = new Set(donations.map((d) => d.email)).size;
+
+      const recurringDonors = new Set(
+        donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email)
+      ).size;
+
+      const activeSubscriptionsCount = donations.filter((d) =>
+        isRecurring(d.frequency)
+      ).length;
+
+      res.json({
+        // ✅ New (multi-currency-safe)
+        totalsByCurrency,
+        monthlyTotalsByCurrency,
+        currencyOptions,
+
+        // ✅ Existing-style metrics (still useful)
+        totalDonors,
+        recurringDonors,
+        activeSubscriptionsCount,
+      });
+    } catch (err) {
+      console.error("Giving dashboard error:", err);
+      res.status(500).json({ error: "Failed to load giving dashboard" });
+    }
   }
 );
 
@@ -2280,30 +2698,264 @@ app.get("/admin/recent-donations/stream", async (req, res) => {
   const token = req.query.token;
   if (!token) return res.sendStatus(401);
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return res.sendStatus(401);
+  }
   if (decoded.role !== "giving-admin") return res.sendStatus(403);
 
   res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
 
-  const send = async () => {
+  const sendLatest = async () => {
     const data = await Donation.find({ status: "completed" })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  send();
+  await sendLatest();
 
+  // ✅ keep connection alive
+  const ping = setInterval(() => {
+    res.write(`event: ping\ndata: {}\n\n`);
+  }, 25000);
+
+  // ✅ change stream
   const stream = Donation.watch([], { fullDocument: "updateLookup" });
-  stream.on("change", (c) => {
-    if (c.fullDocument?.status === "completed") {
-      res.write(`data: ${JSON.stringify([c.fullDocument])}\n\n`);
+
+  stream.on("change", async (c) => {
+    const doc = c.fullDocument;
+    if (doc?.status === "completed") {
+      res.write(`data: ${JSON.stringify([doc])}\n\n`);
     }
   });
 
-  req.on("close", () => stream.close());
+  stream.on("error", (e) => {
+    console.error("Change stream error:", e);
+  });
+
+  req.on("close", () => {
+    clearInterval(ping);
+    stream.close();
+    res.end();
+  });
 });
+
+// app.get("/admin/recent-donations/stream", async (req, res) => {
+//   const token = req.query.token;
+//   if (!token) return res.sendStatus(401);
+
+//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//   if (decoded.role !== "giving-admin") return res.sendStatus(403);
+
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache");
+
+//   const send = async () => {
+//     const data = await Donation.find({ status: "completed" })
+//       .sort({ createdAt: -1 })
+//       .limit(50);
+//     res.write(`data: ${JSON.stringify(data)}\n\n`);
+//   };
+
+//   send();
+
+//   const stream = Donation.watch([], { fullDocument: "updateLookup" });
+//   stream.on("change", (c) => {
+//     if (c.fullDocument?.status === "completed") {
+//       res.write(`data: ${JSON.stringify([c.fullDocument])}\n\n`);
+//     }
+//   });
+
+//   req.on("close", () => stream.close());
+// });
+
+app.get(
+  "/admin/communities",
+  requireAdmin("outreach-admin"),
+  async (req, res) => {
+    try {
+      const communities = await Community.find().sort({ name: 1 }).lean();
+      res.json(communities);
+    } catch (err) {
+      console.error("Communities fetch error:", err);
+      res.status(500).json({ error: "Failed to load communities" });
+    }
+  }
+);
+
+app.get(
+  "/admin/community-assignments",
+  requireAdmin("outreach-admin"),
+  async (req, res) => {
+    try {
+      const assignments = await CommunityAssignment.find().lean();
+      res.json(assignments);
+    } catch (err) {
+      console.error("Assignments fetch error:", err);
+      res.status(500).json({ error: "Failed to load assignments" });
+    }
+  }
+);
+
+// app.put(
+//   "/admin/community-assignments/:communityId",
+//   requireAdmin("outreach-admin"),
+//   async (req, res) => {
+//     try {
+//       const { communityId } = req.params;
+
+//       // optional: validate that community exists
+//       const exists = await Community.exists({ _id: communityId });
+//       if (!exists)
+//         return res.status(404).json({ error: "Community not found" });
+
+//       const patch = req.body || {};
+
+//       // Basic sanitization for weekly reached:
+//       if (patch.weekReached && typeof patch.weekReached === "object") {
+//         for (const [k, v] of Object.entries(patch.weekReached)) {
+//           const weekNum = Number(k);
+//           if (weekNum >= 1 && weekNum <= 12) {
+//             const n = Number(v);
+//             patch.weekReached[k] =
+//               Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+//           } else {
+//             delete patch.weekReached[k];
+//           }
+//         }
+//       }
+
+//       if (patch.housesCovered != null) {
+//         const n = Number(patch.housesCovered);
+//         patch.housesCovered = Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+//       }
+
+//       if (patch.targetTotalPeople != null) {
+//         const n = Number(patch.targetTotalPeople);
+//         patch.targetTotalPeople =
+//           Number.isFinite(n) && n > 0 ? Math.trunc(n) : 24;
+//       }
+
+//       const updated = await CommunityAssignment.findOneAndUpdate(
+//         { communityId },
+//         { $set: { ...patch, communityId } },
+//         { upsert: true, new: true }
+//       ).lean();
+
+//       res.json(updated);
+//     } catch (err) {
+//       console.error("Assignment upsert error:", err);
+//       res.status(500).json({ error: "Failed to save assignment" });
+//     }
+//   }
+// );
+app.put(
+  "/admin/community-assignments/:communityId",
+  requireAdmin("outreach-admin"),
+  async (req, res) => {
+    try {
+      const { communityId } = req.params;
+
+      const exists = await Community.exists({ _id: communityId });
+      if (!exists)
+        return res.status(404).json({ error: "Community not found" });
+
+      const patch = req.body || {};
+
+      // ---- sanitize weekReached (legacy) ----
+      if (patch.weekReached && typeof patch.weekReached === "object") {
+        for (const [k, v] of Object.entries(patch.weekReached)) {
+          const weekNum = Number(k);
+          if (weekNum >= 1 && weekNum <= 12) {
+            const n = Number(v);
+            patch.weekReached[k] =
+              Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+          } else {
+            delete patch.weekReached[k];
+          }
+        }
+      }
+
+      // ---- sanitize weeklyReports (new scoreboard) ----
+      if (patch.weeklyReports && typeof patch.weeklyReports === "object") {
+        const clean = {};
+
+        for (const [weekKey, report] of Object.entries(patch.weeklyReports)) {
+          const weekNum = Number(weekKey);
+          if (!(weekNum >= 1 && weekNum <= 12)) continue;
+          if (!report || typeof report !== "object") continue;
+
+          const netGrowthPeople = Math.max(
+            0,
+            Math.trunc(Number(report.netGrowthPeople || 0))
+          );
+
+          // retention: clamp 0..100
+          let retentionPercent = Number(report.retentionPercent || 0);
+          if (!Number.isFinite(retentionPercent)) retentionPercent = 0;
+          retentionPercent = Math.max(
+            0,
+            Math.min(100, Math.trunc(retentionPercent))
+          );
+
+          const guestReturnees = Math.max(
+            0,
+            Math.trunc(Number(report.guestReturnees || 0))
+          );
+
+          const allowedStatuses = new Set(["on-time", "late", "none"]);
+          const reportingStatus = allowedStatuses.has(report.reportingStatus)
+            ? report.reportingStatus
+            : "none";
+
+          clean[String(weekNum)] = {
+            netGrowthPeople,
+            retentionPercent,
+            guestReturnees,
+            reportingStatus,
+          };
+        }
+
+        patch.weeklyReports = clean;
+      }
+
+      // ---- sanitize other fields ----
+      if (typeof patch.pcfLeaderName === "string")
+        patch.pcfLeaderName = patch.pcfLeaderName.trim();
+      if (typeof patch.cellLeaderName === "string")
+        patch.cellLeaderName = patch.cellLeaderName.trim();
+
+      if (patch.housesCovered != null) {
+        const n = Number(patch.housesCovered);
+        patch.housesCovered = Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+      }
+
+      if (patch.targetTotalPeople != null) {
+        const n = Number(patch.targetTotalPeople);
+        patch.targetTotalPeople =
+          Number.isFinite(n) && n > 0 ? Math.trunc(n) : 24;
+      }
+
+      const updated = await CommunityAssignment.findOneAndUpdate(
+        { communityId },
+        { $set: patch, $setOnInsert: { communityId } },
+        { upsert: true, new: true }
+      ).lean();
+
+      res.json(updated);
+    } catch (err) {
+      console.error("Assignment upsert error:", err);
+      res.status(500).json({ error: "Failed to save assignment" });
+    }
+  }
+);
 
 // app.use("/api/spotify", spotifyRoutes);
 

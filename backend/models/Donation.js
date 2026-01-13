@@ -16,8 +16,14 @@ const donationSchema = new mongoose.Schema(
     },
     frequency: {
       type: String,
-      enum: ["one-time", "monthly"],
+      enum: ["one-time", "weekly", "biweekly", "monthly"],
       required: true,
+      default: "monthly", // optional, but recommended since monthly is your UI default
+    },
+    currency: {
+      type: String,
+      required: true,
+      uppercase: true,
     },
     stripeSessionId: {
       type: String,

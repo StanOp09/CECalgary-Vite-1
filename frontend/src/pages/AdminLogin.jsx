@@ -187,6 +187,8 @@ export default function AdminLogin() {
         navigate("/admin");
       } else if (decoded.role === "giving-admin") {
         navigate("/admin/giving-dashboard");
+      } else if (decoded.role === "outreach-admin") {
+        navigate("/admin/community-map");
       } else {
         throw new Error("Unknown admin role");
       }

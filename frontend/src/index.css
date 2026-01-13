@@ -1,21 +1,98 @@
 @import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* :root {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --accent: #f59e0b;
+} */
+
+:root {
+  /* Theme tokens */
+  --primary: #4f46e5; /* indigo-600 */
+  --primary-dark: #4338ca; /* indigo-700 */
+  --accent: #f59e0b; /* amber-500 */
+
+  /* Surfaces + text */
+  --bg: #f8fafc; /* slate-50 */
+  --card: #ffffff;
+  --text: #111827; /* gray-900 */
+  --muted: #6b7280; /* gray-500 */
+
+  /* Rings / borders */
+  --border: #e5e7eb; /* gray-200 */
+  --ring: rgba(79, 70, 229, 0.35);
+}
+
+/* body {
   width: 100vw;
   overflow-x: hidden;
   font-family: Montserrat, sans-serif;
   background-color: rgb(246, 244, 232);
+} */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  width: 100%;
+  overflow-x: hidden;
+
+  /* Use your chosen fonts consistently */
+  font-family: "Raleway", system-ui, -apple-system, Segoe UI, Roboto, Arial,
+    sans-serif;
+
+  /* Theme background */
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Optional: prettier text selection */
+::selection {
+  background: rgba(245, 158, 11, 0.35); /* amber */
 }
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
-/* Hide scrollbar for Firefox */
 .no-scrollbar {
   scrollbar-width: none;
+}
+
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+/* nav {
+  position: relative;
+  z-index: 50;
+} */
+
+/* If you keep navbar fixed, it MUST stay above maps */
+nav {
+  z-index: 50;
+}
+
+/* footer {
+  position: relative;
+  z-index: 50;
+} */
+
+/* Footer should not overlap content; avoid z-index hacks unless needed */
+footer {
+  z-index: 10;
+}
+
+/* ✅ Global focus style (makes forms feel premium) */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
+  border-radius: 10px;
 }

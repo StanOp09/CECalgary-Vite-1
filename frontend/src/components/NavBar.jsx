@@ -25,107 +25,245 @@
 
 // export default NavBar;
 
+// import { useState } from "react";
+// import { Link } from "react-router-dom";
+// import { getAdminRedirectPath } from "../utils/adminAuth";
+
+// export default function Navbar() {
+//   const [isOpen, setIsOpen] = useState(false);
+
+//   const toggleMenu = () => setIsOpen(!isOpen);
+
+//   const adminPath = getAdminRedirectPath();
+
+//   const links = [
+//     { name: "Home", path: "/" },
+//     // { name: "About", path: "/about" },
+//     { name: "Live Service", path: "/live-service" },
+//     { name: "Sermons", path: "/sermons" },
+//     { name: "Contact", path: "/contact" },
+//     { name: "Givings", path: "/giving" },
+//     { name: "Special", path: "/register" },
+//   ];
+
+//   return (
+//     <nav className="bg-white shadow fixed w-full left-0 z-50">
+//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+//         <div className="flex justify-between h-16 items-center">
+//           {/* Logo */}
+//           <Link to="/" className="flex items-center space-x-4 cursor-pointer">
+//             <img src="/logo.png" alt="Logo" className="w-20 h-20" />
+//             <div className="flex flex-col justify-center">
+//               <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
+//                 Christ Embassy
+//               </span>
+//               <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
+//                 Calgary
+//               </span>
+//             </div>
+//           </Link>
+
+//           {/* Centered Links */}
+//           <div className="hidden md:flex space-x-6 justify-center flex-1">
+//             {links.map((link) => (
+//               <Link
+//                 key={link.name}
+//                 to={link.path}
+//                 className="text-gray-700 hover:text-indigo-600 font-medium"
+//               >
+//                 {link.name}
+//               </Link>
+//             ))}
+//           </div>
+
+//           {/* Admin Button */}
+//           <div className="hidden md:flex flex-shrink-0">
+//             <Link
+//               to={adminPath || "/admin/login"}
+//               className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+//             >
+//               AdminOnly
+//             </Link>
+//           </div>
+
+//           {/* Mobile Menu Button */}
+//           <div className="flex md:hidden">
+//             <button
+//               onClick={toggleMenu}
+//               className="text-gray-700 hover:text-indigo-600 focus:outline-none"
+//             >
+//               {isOpen ? (
+//                 <span className="text-2xl">&#10005;</span>
+//               ) : (
+//                 <span className="text-2xl">&#9776;</span>
+//               )}
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Mobile Menu */}
+//       {isOpen && (
+//         <div className="md:hidden bg-white shadow-lg">
+//           <div className="px-2 pt-2 pb-4 space-y-1">
+//             {links.map((link) => (
+//               <Link
+//                 key={link.name}
+//                 to={link.path}
+//                 className="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-100"
+//                 onClick={() => setIsOpen(false)}
+//               >
+//                 {link.name}
+//               </Link>
+//             ))}
+//             <Link
+//               to="/admin/login"
+//               className="block px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+//               onClick={() => setIsOpen(false)}
+//             >
+//               AdminOnly
+//             </Link>
+//           </div>
+//         </div>
+//       )}
+//     </nav>
+//   );
+// }
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { getAdminRedirectPath } from "../utils/adminAuth";
 
-export default function Navbar() {
+export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
-
-  const toggleMenu = () => setIsOpen(!isOpen);
-
   const adminPath = getAdminRedirectPath();
 
   const links = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/about" },
     { name: "Live Service", path: "/live-service" },
     { name: "Sermons", path: "/sermons" },
     { name: "Contact", path: "/contact" },
-    { name: "Givings", path: "/giving" },
-    { name: "Special", path: "/register" },
+    { name: "Giving", path: "/giving" },
+    { name: "Special-Program", path: "/register" },
   ];
 
+  const closeMenu = () => setIsOpen(false);
+
+  const linkClass = ({ isActive }) =>
+    [
+      "relative px-3 py-2 text-sm font-semibold transition rounded-lg",
+      "text-gray-700 hover:text-indigo-700",
+      isActive && "text-indigo-700",
+    ].join(" ");
+
   return (
-    <nav className="bg-white shadow fixed w-full left-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur border-b border-gray-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-4 cursor-pointer">
-            <img src="/logo.png" alt="Logo" className="w-20 h-20" />
-            <div className="flex flex-col justify-center">
-              <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
+          <Link to="/" className="flex items-center gap-3 ">
+            <img
+              src="/logo.png"
+              alt="Christ Embassy Calgary"
+              className="h-10 w-10 object-contain"
+            />
+
+            <div className="leading-tight">
+              <div className="text-base sm:text-lg font-extrabold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
                 Christ Embassy
-              </span>
-              <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
+              </div>
+              <div className="text-base sm:text-lg font-extrabold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent">
                 Calgary
-              </span>
+              </div>
             </div>
           </Link>
 
-          {/* Centered Links */}
-          <div className="hidden md:flex space-x-6 justify-center flex-1">
-            {links.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className="text-gray-700 hover:text-indigo-600 font-medium"
-              >
-                {link.name}
-              </Link>
+          {/* Desktop links */}
+          <div className="hidden md:flex items-center gap-2">
+            {links.map((l) => (
+              <NavLink key={l.name} to={l.path} className={linkClass}>
+                {({ isActive }) => (
+                  <>
+                    <span>{l.name}</span>
+
+                    {isActive && (
+                      <span
+                        className="absolute left-2 right-2 -bottom-1 h-[2px]
+                       bg-gradient-to-r from-amber-400 to-amber-600
+                       rounded-full"
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
             ))}
           </div>
 
-          {/* Admin Button */}
-          <div className="hidden md:flex flex-shrink-0">
+          {/* Desktop admin button */}
+          <div className="hidden md:flex items-center gap-3">
             <Link
               to={adminPath || "/admin/login"}
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white
+                         bg-indigo-600 hover:bg-indigo-700 shadow-sm transition"
             >
               AdminOnly
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden">
-            <button
-              onClick={toggleMenu}
-              className="text-gray-700 hover:text-indigo-600 focus:outline-none"
-            >
-              {isOpen ? (
-                <span className="text-2xl">&#10005;</span>
-              ) : (
-                <span className="text-2xl">&#9776;</span>
-              )}
-            </button>
-          </div>
+          {/* Mobile button */}
+          <button
+            type="button"
+            onClick={() => setIsOpen((s) => !s)}
+            aria-expanded={isOpen}
+            aria-controls="mobile-menu"
+            className="md:hidden inline-flex items-center justify-center rounded-xl p-2
+                       text-gray-700 hover:bg-gray-100 transition"
+          >
+            <span className="sr-only">Open menu</span>
+            {isOpen ? (
+              <span className="text-2xl leading-none">×</span>
+            ) : (
+              <span className="text-2xl leading-none">≡</span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden bg-white shadow-lg">
-          <div className="px-2 pt-2 pb-4 space-y-1">
-            {links.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-100"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <Link
-              to="/admin/login"
-              className="block px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-              onClick={() => setIsOpen(false)}
+      {/* Mobile menu */}
+      <div
+        id="mobile-menu"
+        className={`md:hidden overflow-hidden border-t border-gray-100 bg-white transition-all duration-200 ${
+          isOpen ? "max-h-96" : "max-h-0"
+        }`}
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 space-y-1">
+          {links.map((l) => (
+            <NavLink
+              key={l.name}
+              to={l.path}
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                [
+                  "block rounded-xl px-4 py-3 text-sm font-semibold transition",
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-gray-700 hover:bg-gray-50",
+                ].join(" ")
+              }
             >
-              AdminOnly
-            </Link>
-          </div>
+              {l.name}
+            </NavLink>
+          ))}
+
+          <Link
+            to={adminPath || "/admin/login"}
+            onClick={closeMenu}
+            className="mt-2 block rounded-xl px-4 py-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition"
+          >
+            AdminOnly
+          </Link>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

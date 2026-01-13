@@ -1,56 +1,4 @@
-// import { Outlet } from "react-router-dom";
-// import ImageCard from "../components/ImageCard";
-// import CenteredImageCard from "../components/CenteredImageCard";
-
-// export default function MinimalLayout() {
-//   return (
-//     <div className="min-h-screen flex flex-col items-center justify-center bg-black px-4">
-//       <ImageCard
-//         imageSrc="/new-year-bg.jpg"
-//         title="NEW YEAR'S EVE"
-//         // description="This is a description."
-//       />
-//       <CenteredImageCard imageSrc="/new-year-card.jpeg" />
-//       <Outlet />
-//     </div>
-//   );
-// }
-
-// import { Outlet } from "react-router-dom";
-// import ImageCard from "../components/ImageCard";
-// import CenteredImageCard from "../components/CenteredImageCard";
-
-// export default function MinimalLayout() {
-//   return (
-//     <div className="min-h-screen flex flex-col items-center justify-start bg-black px-4 pt-8">
-//       {/* Top full-width image card with countdown */}
-//       <ImageCard imageSrc="/new-year-bg.jpg" title="NEW YEAR'S EVE" />
-
-//       {/* Centered image card */}
-//       <CenteredImageCard imageSrc="/new-year-card.jpeg" />
-
-//       {/* Stylish text */}
-//       <div className="text-center mt-8 max-w-3xl">
-//         <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
-//           Save Your Spot for an Unforgettable Event!
-//         </h2>
-//         <p className="text-lg sm:text-xl text-gray-300">
-//           Join us on December 31st for an evening full of celebration, worship,
-//           and insight into the Glorious Year 2026. Reserve your seat now to be
-//           part of the festivities.
-//         </p>
-//       </div>
-
-//       {/* Registration button / form */}
-//       <div className="w-full flex justify-center">
-//         <Outlet />
-//       </div>
-//     </div>
-//   );
-// }
-
-import { Outlet } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import ImageCard from "../components/ImageCard";
 import CenteredImageCard from "../components/CenteredImageCard";
 import CenteredVideoCard from "../components/CenteredVideoCard";
@@ -59,52 +7,72 @@ export default function MinimalLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start bg-black px-4 pt-6 sm:pt-8 relative">
+    <div className="min-h-screen bg-gradient-to-b from-black via-[#050510] to-black text-white relative">
       {/* 🔒 Admin-only button */}
       <button
         onClick={() => navigate("/admin/login")}
-        className="fixed top-4 right-4 
-    z-50
-    text-xs sm:text-sm 
-    text-gray-300 hover:text-white 
-    border border-gray-500 
-    px-3 py-1
-    mr-8 -mt-3
-    rounded-md 
-    transition
-    bg-black/40 backdrop-blur"
+        className="fixed top-4 right-4 z-50 text-xs sm:text-sm
+                   text-white/80 hover:text-white
+                   bg-white/5 hover:bg-white/10
+                   border border-white/15
+                   px-3 py-1.5 rounded-lg
+                   backdrop-blur-md shadow-lg
+                   transition"
       >
         Admin Only
       </button>
-      {/* Full-width image card with countdown */}
-      <ImageCard imageSrc="/new-year-bg.jpg" title="MIRACLE SERVICE" />
 
-      {/* Centered Video card */}
-      <CenteredVideoCard
-        videoSrc="/MIRACLE SERVICE PROMO 1.mp4"
-        poster="/MiracleService.jpeg"
-      />
+      {/* Content wrapper */}
+      <div className="px-4 pt-6 sm:pt-10 pb-16 max-w-6xl mx-auto">
+        {/* Hero */}
+        <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+          <ImageCard imageSrc="/new-year-bg.jpg" title="MIRACLE SERVICE" />
+        </div>
 
-      {/* Stylish text */}
-      <div className="text-center mt-6 sm:mt-8 max-w-3xl px-2 sm:px-0">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4">
-          Save Your Spot for a Time of the Manifestation of the Sons of God!
-        </h2>
-        <p className="text-sm sm:text-lg md:text-xl text-gray-300">
-          Join us on January 25th for a special Miracle Service filled with
-          worship, prayer, and God’s transforming presence. We invite you to
-          bring the sick, the weary, and all who desire healing, hope, and
-          restoration. Save your seat and come with faith and expectation.
-        </p>
+        {/* Video */}
+        <div className="mt-8 sm:mt-10 flex justify-center">
+          <div className="w-full max-w-4xl rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+            <CenteredVideoCard
+              videoSrc="/MIRACLE SERVICE PROMO 1.mp4"
+              poster="/MiracleService.jpeg"
+            />
+          </div>
+        </div>
+
+        {/* Text */}
+        <div className="text-center mt-8 sm:mt-10 max-w-3xl mx-auto px-2 sm:px-0">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
+            Save Your Spot for a Time of the Manifestation of the Sons of God!
+          </h2>
+
+          <p className="text-sm sm:text-lg md:text-xl text-white/70 mt-4 leading-relaxed">
+            Join us on January 25th for a special Miracle Service filled with
+            worship, prayer, and God’s transforming presence. We invite you to
+            bring the sick, the weary, and all who desire healing, hope, and
+            restoration. Save your seat and come with faith and expectation.
+          </p>
+
+          {/* subtle divider */}
+          <div className="mt-8 h-px w-24 mx-auto bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+        </div>
+
+        {/* Image */}
+        <div className="mt-10 flex justify-center">
+          <div className="w-full max-w-4xl rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+            <CenteredImageCard imageSrc="/MiracleService.jpeg" />
+          </div>
+        </div>
+
+        {/* Outlet (Registration) */}
+        <div className="w-full flex justify-center mt-10">
+          <div className="w-full max-w-3xl">
+            <Outlet />
+          </div>
+        </div>
       </div>
 
-      {/* Centered image card */}
-      <CenteredImageCard imageSrc="/MiracleService.jpeg" />
-
-      {/* Registration button / form */}
-      <div className="w-full flex justify-center mt-6 sm:mt-8">
-        <Outlet />
-      </div>
+      {/* bottom glow */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-indigo-500/10 to-transparent" />
     </div>
   );
 }

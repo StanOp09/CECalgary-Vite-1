@@ -1,5 +1,4 @@
 export default function SermonsPage() {
-  // Convert the URLs to embed URLs
   const episodes = [
     "https://open.spotify.com/embed/episode/5sUpYo4Xf2yCbiHon7HpVn",
     "https://open.spotify.com/embed/episode/4U6pBJFh25WD09pZKzYn7M",
@@ -10,29 +9,46 @@ export default function SermonsPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 font-sans text-gray-800 mb-16">
-      <h1 className="text-4xl font-bold mb-4 text-center text-indigo-700">
-        Recent Sermons
-      </h1>
+    <section className="relative bg-gradient-to-b from-indigo-50 via-white to-gray-100 py-20">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <h1 className="text-3xl sm:text-4xl font-bold text-indigo-700 mb-4">
+            Recent Sermons
+          </h1>
+          <p className="text-gray-600 text-base sm:text-lg">
+            Listen to our latest messages and be strengthened in faith, wisdom,
+            and purpose.
+          </p>
+        </div>
 
-      <p className="text-center text-gray-700 mb-12 text-lg">
-        Listen to our latest messages below. Stay inspired and grow in faith.
-      </p>
+        {/* Sermons Grid */}
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          {episodes.map((url, index) => (
+            <div
+              key={index}
+              className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              <iframe
+                src={url}
+                width="100%"
+                height="232"
+                frameBorder="0"
+                allow="encrypted-media"
+                className="w-full"
+                title={`Sermon Episode ${index + 1}`}
+              />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {episodes.map((url, index) => (
-          <iframe
-            key={index}
-            src={url}
-            width="100%"
-            height="232"
-            frameBorder="0"
-            allow="encrypted-media"
-            className="rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300"
-            title={`Sermon Episode ${index + 1}`}
-          ></iframe>
-        ))}
+              <div className="px-4 py-3 border-t border-gray-100 bg-white">
+                <p className="text-sm font-semibold text-gray-800">
+                  Sermon Episode {index + 1}
+                </p>
+                <p className="text-xs text-gray-500">Audio message • Spotify</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
