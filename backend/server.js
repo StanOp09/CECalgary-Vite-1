@@ -1862,6 +1862,1114 @@
 // // ---------- START ----------
 // app.listen(3000, () => console.log("Server running on 3000"));
 
+// // ***********VERSION 7 – FULL SERVER.JS****************
+// import express from "express";
+// import Stripe from "stripe";
+// import cors from "cors";
+// import dotenv from "dotenv";
+// import mongoose from "mongoose";
+// import jwt from "jsonwebtoken";
+// import bcrypt from "bcryptjs";
+// import Donation from "./models/Donation.js";
+// // ✅ NEW: import Registration model from models folder
+// import Registration from "./models/Registration.js";
+// import Community from "./models/Community.js";
+// import CommunityAssignment from "./models/CommunityAssignment.js";
+
+// // import spotifyRoutes from "./spotify.js";
+
+// dotenv.config();
+
+// // ---------- ENV CHECKS ----------
+// [
+//   "STRIPE_SECRET_KEY",
+//   "STRIPE_WEBHOOK_SECRET",
+//   "MONGO_URI",
+//   "JWT_SECRET",
+// ].forEach((v) => {
+//   if (!process.env[v]) throw new Error(`${v} missing`);
+// });
+
+// const app = express();
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// // ---------- CORS ----------
+// const allowedOrigins = [
+//   process.env.CLIENT_URL,
+//   process.env.CLIENT_URL_2, // optional
+// ].filter(Boolean);
+
+// app.use(
+//   cors({
+//     origin: (origin, cb) => {
+//       if (!origin) return cb(null, true); // mobile apps / some browsers
+//       if (allowedOrigins.includes(origin)) return cb(null, true);
+//       return cb(new Error("Not allowed by CORS"));
+//     },
+//     methods: ["GET", "POST", "PUT", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   }),
+// );
+
+// // ---------- BODY PARSER (EXCEPT WEBHOOK) ----------
+// app.use((req, res, next) => {
+//   if (req.originalUrl === "/webhook") {
+//     next(); // Stripe needs raw body
+//   } else {
+//     express.json()(req, res, next);
+//   }
+// });
+
+// // ---------- RETRY HELPER ----------
+// async function withRetry(fn, retries = 3, delay = 1000) {
+//   let lastErr;
+//   for (let i = 0; i < retries; i++) {
+//     try {
+//       return await fn();
+//     } catch (err) {
+//       lastErr = err;
+//       await new Promise((r) => setTimeout(r, delay));
+//     }
+//   }
+//   throw lastErr;
+// }
+
+// // ---------- MONGO ----------
+// mongoose
+//   .connect(process.env.MONGO_URI)
+//   .then(() => console.log("MongoDB connected"))
+//   .catch(console.error);
+
+// // ---------- MODELS ----------
+// // ✅ REMOVED inline registrationSchema + mongoose.model("Registration"...)
+// // ✅ Registration now comes from ./models/Registration.js
+
+// // ---------- AUTH ----------
+// const requireAdmin = (role) => (req, res, next) => {
+//   const auth = req.headers.authorization;
+//   if (!auth) return res.status(401).json({ error: "No token" });
+
+//   try {
+//     const token = auth.split(" ")[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     if (decoded.role !== role)
+//       return res.status(403).json({ error: "Forbidden" });
+//     req.admin = decoded;
+//     next();
+//   } catch {
+//     res.status(401).json({ error: "Invalid token" });
+//   }
+// };
+
+// const ZERO_DECIMAL = new Set([
+//   "bif",
+//   "clp",
+//   "djf",
+//   "gnf",
+//   "jpy",
+//   "kmf",
+//   "krw",
+//   "mga",
+//   "pyg",
+//   "rwf",
+//   "ugx",
+//   "vnd",
+//   "vuv",
+//   "xaf",
+//   "xof",
+//   "xpf",
+// ]);
+
+// function toMinorUnits(amountMajor, currency) {
+//   const n = Number(amountMajor);
+//   if (!Number.isFinite(n)) return 0;
+//   return ZERO_DECIMAL.has(currency) ? Math.round(n) : Math.round(n * 100);
+// }
+
+// function fromMinorUnits(amountMinor, currency) {
+//   const n = Number(amountMinor);
+//   if (!Number.isFinite(n)) return 0;
+//   return ZERO_DECIMAL.has(currency) ? n : n / 100;
+// }
+
+// // ---------- HEALTH ----------
+// app.get("/health", (_, res) => res.json({ ok: true }));
+
+// // ✅✅✅ ---------- REGISTRATION (MODEL-BASED) ----------
+// app.post("/register", async (req, res) => {
+//   try {
+//     const { fullName, email, phone, attendees } = req.body;
+
+//     if (!fullName || !email || !phone) {
+//       return res.status(400).json({ message: "Missing required fields." });
+//     }
+
+//     const attendeesNum = Number(attendees ?? 1);
+//     if (Number.isNaN(attendeesNum) || attendeesNum < 1) {
+//       return res.status(400).json({ message: "Attendees must be 1 or more." });
+//     }
+
+//     await Registration.create({
+//       fullName,
+//       email,
+//       phone,
+//       attendees: attendeesNum,
+//     });
+
+//     return res.status(201).json({
+//       message: "Registration received! We look forward to seeing you.",
+//     });
+//   } catch (err) {
+//     console.error("Registration error:", err);
+//     return res.status(500).json({ message: "Server error. Try again later." });
+//   }
+// });
+// // ✅✅✅ ---------------------------------------------
+
+// // ---------- CHECKOUT ----------
+// // app.post("/create-checkout-session", async (req, res) => {
+// //   const { amount, category, email, frequency } = req.body;
+
+// //   if (!amount || !email)
+// //     return res.status(400).json({ error: "Missing fields" });
+
+// //   const session = await stripe.checkout.sessions.create({
+// //     mode: frequency === "monthly" ? "subscription" : "payment",
+// //     customer_email: email,
+// //     subscription_data:
+// //       frequency === "monthly"
+// //         ? {
+// //             metadata: {
+// //               category,
+// //               frequency,
+// //             },
+// //           }
+// //         : undefined,
+
+// //     line_items: [
+// //       {
+// //         price_data: {
+// //           currency: "cad",
+// //           unit_amount: Math.round(Number(amount) * 100),
+// //           recurring:
+// //             frequency === "monthly" ? { interval: "month" } : undefined,
+// //           product_data: { name: `Giving - ${category}` },
+// //         },
+// //         quantity: 1,
+// //       },
+// //     ],
+// //     success_url: `${process.env.CLIENT_URL}/success`,
+// //     cancel_url: `${process.env.CLIENT_URL}/cancel`,
+// //   });
+
+// //   await Donation.create({
+// //     email,
+// //     amount,
+// //     category,
+// //     frequency,
+// //     stripeSessionId: session.id,
+// //     status: "pending",
+// //   });
+
+// //   res.json({ url: session.url });
+// // });
+
+// // app.post("/create-checkout-session", async (req, res) => {
+// //   const { amount, category, email, frequency } = req.body;
+
+// //   // 🔒 VALIDATE FREQUENCY HERE
+// //   const allowed = new Set(["one-time", "weekly", "biweekly", "monthly"]);
+// //   if (!allowed.has(frequency)) {
+// //     return res.status(400).json({ error: "Invalid frequency" });
+// //   }
+
+// //   if (!amount || !email || !category || !frequency) {
+// //     return res.status(400).json({ error: "Missing fields" });
+// //   }
+
+// //   const amt = Number(amount);
+// //   if (!Number.isFinite(amt) || amt <= 0) {
+// //     return res.status(400).json({ error: "Invalid amount" });
+// //   }
+
+// //   const isRecurring = frequency !== "one-time";
+
+// //   // Map your frequency -> Stripe recurring config
+// //   const recurring =
+// //     frequency === "monthly"
+// //       ? { interval: "month" }
+// //       : frequency === "weekly"
+// //       ? { interval: "week", interval_count: 1 }
+// //       : frequency === "biweekly"
+// //       ? { interval: "week", interval_count: 2 }
+// //       : null;
+
+// //   const session = await stripe.checkout.sessions.create({
+// //     mode: isRecurring ? "subscription" : "payment",
+// //     customer_email: email,
+
+// //     subscription_data: isRecurring
+// //       ? {
+// //           metadata: { category, frequency }, // store both
+// //         }
+// //       : undefined,
+
+// //     line_items: [
+// //       {
+// //         price_data: {
+// //           currency: "cad",
+// //           unit_amount: Math.round(amt * 100),
+// //           recurring: isRecurring ? recurring : undefined,
+// //           product_data: { name: `Giving - ${category}` },
+// //         },
+// //         quantity: 1,
+// //       },
+// //     ],
+
+// //     success_url: `${process.env.CLIENT_URL}/success`,
+// //     cancel_url: `${process.env.CLIENT_URL}/cancel`,
+// //   });
+
+// //   await Donation.create({
+// //     email,
+// //     amount: amt,
+// //     category,
+// //     frequency,
+// //     stripeSessionId: session.id,
+// //     status: "pending",
+// //   });
+
+// //   res.json({ url: session.url });
+// // });
+// app.post("/create-checkout-session", async (req, res) => {
+//   try {
+//     const { amount, category, email, frequency, currency } = req.body;
+
+//     if (!currency) return res.status(400).json({ error: "Missing currency" });
+
+//     // Stripe expects lowercase currency codes:
+//     const curr = String(currency).toLowerCase();
+
+//     // Keep this list consistent with your frontend ALL list (or store it centrally)
+//     const allowedCurrencies = new Set([
+//       "usd",
+//       "eur",
+//       "jpy",
+//       "gbp",
+//       "aud",
+//       "cad",
+//       "chf",
+//       "cny",
+//       "hkd",
+//       "nzd",
+//       "inr",
+//       "ngn",
+//       "kes",
+//       "ghs",
+//       "zar",
+//       "sgd",
+//       "sek",
+//       "nok",
+//       "dkk",
+//       "pln",
+//       "mxn",
+//       "brl",
+//     ]);
+
+//     if (!allowedCurrencies.has(curr)) {
+//       return res.status(400).json({ error: "Unsupported currency" });
+//     }
+
+//     const allowed = new Set(["one-time", "weekly", "biweekly", "monthly"]);
+//     if (!allowed.has(frequency)) {
+//       return res.status(400).json({ error: "Invalid frequency" });
+//     }
+
+//     if (!amount || !email || !category || !frequency) {
+//       return res.status(400).json({ error: "Missing fields" });
+//     }
+
+//     const amt = Number(amount);
+//     if (!Number.isFinite(amt) || amt <= 0) {
+//       return res.status(400).json({ error: "Invalid amount" });
+//     }
+
+//     const isRecurring = frequency !== "one-time";
+
+//     const recurringMap = {
+//       monthly: { interval: "month" },
+//       weekly: { interval: "week", interval_count: 1 },
+//       biweekly: { interval: "week", interval_count: 2 },
+//     };
+
+//     const recurring = isRecurring ? recurringMap[frequency] : undefined;
+
+//     // ✅ safety: should never be undefined for recurring modes
+//     if (isRecurring && !recurring) {
+//       return res.status(400).json({ error: "Invalid recurring config" });
+//     }
+
+//     const session = await stripe.checkout.sessions.create({
+//       mode: isRecurring ? "subscription" : "payment",
+//       customer_email: email,
+//       subscription_data: isRecurring
+//         ? { metadata: { category, frequency } }
+//         : undefined,
+//       line_items: [
+//         {
+//           // price_data: {
+//           //   currency: curr,
+//           //   unit_amount: Math.round(amt * 100),
+//           //   recurring,
+//           //   product_data: { name: `Giving - ${category}` },
+//           // },
+//           price_data: {
+//             currency: curr,
+//             unit_amount: toMinorUnits(amt, curr), // ✅ see helper below
+//             recurring,
+//             product_data: { name: `Giving - ${category}` },
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       success_url: `${process.env.CLIENT_URL}/success`,
+//       cancel_url: `${process.env.CLIENT_URL}/cancel`,
+//     });
+
+//     await Donation.create({
+//       email,
+//       amount: amt,
+//       currency: currency.toUpperCase(),
+//       category,
+//       frequency,
+//       stripeSessionId: session.id,
+//       status: "pending",
+//     });
+
+//     return res.json({ sessionId: session.id, url: session.url });
+//   } catch (err) {
+//     console.error("Stripe checkout error:", err);
+//     return res.status(500).json({ error: err?.message || "Checkout failed" });
+//   }
+// });
+
+// // ---------- STRIPE MANAGE GIVINGS ----------
+// app.post("/create-portal-session", async (req, res) => {
+//   try {
+//     const { email } = req.body;
+
+//     if (!email || !email.includes("@")) {
+//       return res.status(400).json({ error: "Valid email is required" });
+//     }
+
+//     // 1) Find the Stripe customer by email
+//     const customers = await stripe.customers.list({ email, limit: 1 });
+//     const customer = customers.data?.[0];
+
+//     if (!customer) {
+//       return res.status(404).json({
+//         error:
+//           "No Stripe customer found for this email. Make a donation first.",
+//       });
+//     }
+
+//     // 2) Create the Customer Portal session
+//     const portalSession = await stripe.billingPortal.sessions.create({
+//       customer: customer.id,
+//       return_url: `${process.env.CLIENT_URL}/giving`,
+//     });
+
+//     return res.json({ url: portalSession.url });
+//   } catch (err) {
+//     console.error("Portal session error:", err);
+//     return res.status(500).json({ error: err?.message || "Portal failed" });
+//   }
+// });
+
+// // ---------- STRIPE WEBHOOK ----------
+// app.post(
+//   "/webhook",
+//   express.raw({ type: "application/json" }),
+//   async (req, res) => {
+//     const sig = req.headers["stripe-signature"];
+//     let event;
+
+//     try {
+//       event = stripe.webhooks.constructEvent(
+//         req.body,
+//         sig,
+//         process.env.STRIPE_WEBHOOK_SECRET,
+//       );
+//     } catch (err) {
+//       return res.status(400).send(`Webhook Error: ${err.message}`);
+//     }
+
+//     try {
+//       if (event.type === "checkout.session.completed") {
+//         const session = event.data.object;
+
+//         // 🔥 Skip subscriptions
+//         if (session.mode === "subscription") {
+//           // do nothing here, invoice.paid will handle it
+//           await Donation.updateMany(
+//             { stripeSessionId: session.id },
+//             { status: "completed", stripeCustomerId: session.customer },
+//           );
+//         }
+
+//         // await Donation.updateMany(
+//         //   { stripeSessionId: session.id },
+//         //   {
+//         //     status: "completed",
+//         //     stripeCustomerId: session.customer,
+//         //   },
+//         // );
+//       }
+
+//       // if (event.type === "invoice.paid") {
+//       //   const invoice = event.data.object;
+
+//       //   const subscription = await stripe.subscriptions.retrieve(
+//       //     invoice.subscription
+//       //   );
+
+//       //   await Donation.create({
+//       //     email: invoice.customer_email,
+//       //     amount: invoice.amount_paid / 100,
+//       //     category: subscription.metadata.category || "general giving",
+//       //     frequency: "monthly",
+//       //     stripeCustomerId: invoice.customer,
+//       //     stripeSessionId: invoice.subscription,
+//       //     status: "completed",
+//       //   });
+//       // }
+
+//       if (event.type === "invoice.paid") {
+//         const invoice = event.data.object;
+
+//         const subscription = await stripe.subscriptions.retrieve(
+//           invoice.subscription,
+//         );
+
+//         await Donation.create({
+//           // email: invoice.customer_email,
+//           // amount: invoice.amount_paid / 100,
+//           // category: subscription.metadata.category || "general giving",
+//           // frequency: subscription.metadata.frequency || "monthly", // ✅ now dynamic
+//           // stripeCustomerId: invoice.customer,
+//           // stripeSessionId: invoice.subscription,
+//           // status: "completed",
+//           email: invoice.customer_email,
+//           amount: fromMinorUnits(invoice.amount_paid, invoice.currency),
+//           currency: invoice.currency.toUpperCase(),
+//           category: subscription.metadata.category || "general giving",
+//           frequency: subscription.metadata.frequency || "monthly",
+//           stripeCustomerId: invoice.customer,
+//           stripeSessionId: invoice.subscription,
+//           status: "completed",
+//         });
+//       }
+
+//       res.json({ received: true });
+//     } catch (err) {
+//       res.status(500).json({ error: "Webhook failed" });
+//     }
+//   },
+// );
+
+// // ---------- ADMIN LOGIN ----------
+// app.post("/admin/login", async (req, res) => {
+//   const { email, password } = req.body;
+
+//   if (!bcrypt.compareSync(password, process.env.ADMIN_PASSWORD_HASH))
+//     return res.status(401).json({ error: "Invalid credentials" });
+
+//   const role =
+//     email === process.env.GIVING_ADMIN_EMAIL
+//       ? "giving-admin"
+//       : email === process.env.REGISTRATION_ADMIN_EMAIL
+//         ? "registration-admin"
+//         : email === process.env.OUTREACH_ADMIN_EMAIL
+//           ? "outreach-admin"
+//           : null;
+
+//   if (!role) return res.status(401).json({ error: "Not admin" });
+
+//   const token = jwt.sign({ email, role }, process.env.JWT_SECRET, {
+//     expiresIn: "8h",
+//   });
+
+//   res.json({ token, role });
+// });
+
+// // ---------- REGISTRATION DASHBOARD ----------
+// app.get(
+//   "/admin/dashboard",
+//   requireAdmin("registration-admin"),
+//   async (req, res) => {
+//     try {
+//       const registrations = await Registration.find();
+
+//       const totalAttendees = registrations.reduce(
+//         (sum, r) => sum + (r.attendees || 0),
+//         0,
+//       );
+
+//       const chartMap = {};
+//       registrations.forEach((r) => {
+//         if (!r.createdAt) return;
+//         const day = r.createdAt.toISOString().split("T")[0];
+//         chartMap[day] = (chartMap[day] || 0) + (r.attendees || 0);
+//       });
+
+//       const chartData = Object.entries(chartMap)
+//         .map(([_id, attendees]) => ({ _id, attendees }))
+//         .sort((a, b) => new Date(a._id) - new Date(b._id));
+
+//       res.json({
+//         totalRegistrations: registrations.length,
+//         totalAttendees,
+//         chartData,
+//       });
+//     } catch (err) {
+//       console.error("Registration dashboard error:", err);
+//       res.status(500).json({ error: "Failed to load registration dashboard" });
+//     }
+//   },
+// );
+
+// // ---------- REGISTRATION CSV EXPORT ----------
+// app.get(
+//   "/admin/registrations.csv",
+//   requireAdmin("registration-admin"),
+//   async (req, res) => {
+//     try {
+//       const registrations = await Registration.find()
+//         .sort({ createdAt: -1 })
+//         .lean();
+
+//       // CSV escaping (handles commas, quotes, newlines)
+//       const esc = (v) => {
+//         const s = String(v ?? "");
+//         return `"${s.replace(/"/g, '""')}"`;
+//       };
+
+//       const header = [
+//         "Full Name",
+//         "Email Address",
+//         "Phone Number",
+//         "Number of Attendees",
+//         "Created At",
+//       ];
+
+//       const rows = registrations.map((r) => [
+//         esc(r.fullName),
+//         esc(r.email),
+//         esc(r.phone),
+//         esc(r.attendees),
+//         esc(r.createdAt ? new Date(r.createdAt).toISOString() : ""),
+//       ]);
+
+//       const csv = [header.join(","), ...rows.map((row) => row.join(","))].join(
+//         "\n",
+//       );
+
+//       res.setHeader("Content-Type", "text/csv; charset=utf-8");
+//       res.setHeader(
+//         "Content-Disposition",
+//         `attachment; filename="registrations.csv"`,
+//       );
+
+//       return res.status(200).send(csv);
+//     } catch (err) {
+//       console.error("CSV export error:", err);
+//       return res.status(500).json({ error: "Failed to export CSV" });
+//     }
+//   },
+// );
+
+// // ---------- RECENT REGISTRATIONS ----------
+// app.get(
+//   "/admin/registrations",
+//   requireAdmin("registration-admin"),
+//   async (req, res) => {
+//     try {
+//       const limit = Math.min(Number(req.query.limit || 20), 200);
+//       const registrations = await Registration.find()
+//         .sort({ createdAt: -1 })
+//         .limit(limit)
+//         .lean();
+
+//       res.json({ registrations });
+//     } catch (err) {
+//       console.error("Recent registrations error:", err);
+//       res.status(500).json({ error: "Failed to fetch registrations" });
+//     }
+//   },
+// );
+
+// // ---------- GIVING DASHBOARD ----------
+// // app.get(
+// //   "/admin/giving-dashboard",
+// //   requireAdmin("giving-admin"),
+// //   async (req, res) => {
+// //     const { category, search } = req.query;
+
+// //     const query = { status: "completed" };
+
+// //     // ✅ Filter by category
+// //     if (category && category !== "all") {
+// //       query.category = category;
+// //     }
+
+// //     // ✅ Filter by donor (email for now)
+// //     if (search) {
+// //       query.email = { $regex: search, $options: "i" };
+// //     }
+
+// //     const donations = await Donation.find(query);
+
+// //     const totalDonations = donations.reduce((s, d) => s + d.amount, 0);
+
+// //     // Monthly totals
+// //     const monthlyTotals = Object.values(
+// //       donations.reduce((acc, d) => {
+// //         const m = d.createdAt.toISOString().slice(0, 7);
+// //         acc[m] = acc[m] || { month: m, total: 0 };
+// //         acc[m].total += d.amount;
+// //         return acc;
+// //       }, {})
+// //     );
+
+// //     // ✅ Total donors (unique emails)
+// //     const totalDonors = new Set(donations.map((d) => d.email)).size;
+
+// //     const isRecurring = (f) => ["weekly", "biweekly", "monthly"].includes(f);
+
+// //     const recurringDonors = new Set(
+// //       donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email)
+// //     ).size;
+
+// //     const activeSubscriptionsCount = donations.filter((d) =>
+// //       isRecurring(d.frequency)
+// //     ).length;
+
+// //     // // ✅ Recurring donors (unique emails with monthly frequency)
+// //     // const recurringDonors = new Set(
+// //     //   donations.filter((d) => d.frequency === "monthly").map((d) => d.email)
+// //     // ).size;
+
+// //     // // Active subscriptions (already correct)
+// //     // const activeSubscriptionsCount = donations.filter(
+// //     //   (d) => d.frequency === "monthly"
+// //     // ).length;
+
+// //     res.json({
+// //       totalDonations,
+// //       monthlyTotals,
+// //       activeSubscriptionsCount,
+// //       totalDonors,
+// //       recurringDonors,
+// //     });
+// //   }
+// // );
+// app.get(
+//   "/admin/giving-dashboard",
+//   requireAdmin("giving-admin"),
+//   async (req, res) => {
+//     try {
+//       const { category, search, currency } = req.query;
+
+//       // Base filter
+//       const match = { status: "completed" };
+
+//       // Category filter
+//       if (category && category !== "all") {
+//         match.category = category;
+//       }
+
+//       // Donor filter (email)
+//       if (search) {
+//         match.email = { $regex: String(search), $options: "i" };
+//       }
+
+//       // Currency filter
+//       // (store currency in DB as uppercase, e.g., "CAD")
+//       if (currency && currency !== "all") {
+//         match.currency = String(currency).toUpperCase();
+//       }
+
+//       const isRecurring = (f) => ["weekly", "biweekly", "monthly"].includes(f);
+
+//       // Pull matching donations once (used for donor counts)
+//       const donations = await Donation.find(match).lean();
+
+//       // ---- Totals by currency ----
+//       // returns: [{ _id: "CAD", total: 1234.5 }, ...]
+//       const totalsByCurrencyAgg = await Donation.aggregate([
+//         { $match: match },
+//         {
+//           $group: {
+//             _id: "$currency",
+//             total: { $sum: "$amount" }, // amount stored as major units
+//             count: { $sum: 1 },
+//           },
+//         },
+//         { $sort: { _id: 1 } },
+//       ]);
+
+//       const totalsByCurrency = totalsByCurrencyAgg.reduce((acc, row) => {
+//         acc[row._id || "UNKNOWN"] = {
+//           total: Number(row.total || 0),
+//           count: Number(row.count || 0),
+//         };
+//         return acc;
+//       }, {});
+
+//       // ---- Monthly totals grouped by currency ----
+//       // returns rows like:
+//       // { _id: { currency: "CAD", month: "2026-01" }, total: 200 }
+//       const monthlyTotalsByCurrencyAgg = await Donation.aggregate([
+//         { $match: match },
+//         {
+//           $group: {
+//             _id: {
+//               currency: "$currency",
+//               month: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+//             },
+//             total: { $sum: "$amount" },
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             currency: "$_id.currency",
+//             month: "$_id.month",
+//             total: 1,
+//           },
+//         },
+//         { $sort: { currency: 1, month: 1 } },
+//       ]);
+
+//       // Shape into: { CAD: [{month,total},...], USD: [...] }
+//       const monthlyTotalsByCurrency = monthlyTotalsByCurrencyAgg.reduce(
+//         (acc, row) => {
+//           const c = row.currency || "UNKNOWN";
+//           acc[c] = acc[c] || [];
+//           acc[c].push({ month: row.month, total: Number(row.total || 0) });
+//           return acc;
+//         },
+//         {},
+//       );
+
+//       // ---- Currency options (for dropdowns) ----
+//       const currencyOptionsAgg = await Donation.aggregate([
+//         { $match: { status: "completed" } },
+//         { $group: { _id: "$currency" } },
+//         { $sort: { _id: 1 } },
+//       ]);
+//       const currencyOptions = currencyOptionsAgg
+//         .map((r) => r._id)
+//         .filter(Boolean);
+
+//       // ---- Donor metrics (safe with currency filter applied) ----
+//       const totalDonors = new Set(donations.map((d) => d.email)).size;
+
+//       const recurringDonors = new Set(
+//         donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email),
+//       ).size;
+
+//       const activeSubscriptionsCount = donations.filter((d) =>
+//         isRecurring(d.frequency),
+//       ).length;
+
+//       res.json({
+//         // ✅ New (multi-currency-safe)
+//         totalsByCurrency,
+//         monthlyTotalsByCurrency,
+//         currencyOptions,
+
+//         // ✅ Existing-style metrics (still useful)
+//         totalDonors,
+//         recurringDonors,
+//         activeSubscriptionsCount,
+//       });
+//     } catch (err) {
+//       console.error("Giving dashboard error:", err);
+//       res.status(500).json({ error: "Failed to load giving dashboard" });
+//     }
+//   },
+// );
+
+// // ---------- SSE ----------
+// app.get("/admin/recent-donations/stream", async (req, res) => {
+//   const token = req.query.token;
+//   if (!token) return res.sendStatus(401);
+
+//   let decoded;
+//   try {
+//     decoded = jwt.verify(token, process.env.JWT_SECRET);
+//   } catch {
+//     return res.sendStatus(401);
+//   }
+//   if (decoded.role !== "giving-admin") return res.sendStatus(403);
+
+//   res.setHeader("Content-Type", "text/event-stream");
+//   res.setHeader("Cache-Control", "no-cache, no-transform");
+//   res.setHeader("Connection", "keep-alive");
+//   res.flushHeaders?.();
+
+//   const sendLatest = async () => {
+//     const data = await Donation.find({ status: "completed" })
+//       .sort({ createdAt: -1 })
+//       .limit(50)
+//       .lean();
+//     res.write(`data: ${JSON.stringify(data)}\n\n`);
+//   };
+
+//   await sendLatest();
+
+//   // ✅ keep connection alive
+//   const ping = setInterval(() => {
+//     res.write(`event: ping\ndata: {}\n\n`);
+//   }, 25000);
+
+//   // ✅ change stream
+//   const stream = Donation.watch([], { fullDocument: "updateLookup" });
+
+//   stream.on("change", async (c) => {
+//     const doc = c.fullDocument;
+//     if (doc?.status === "completed") {
+//       res.write(`data: ${JSON.stringify([doc])}\n\n`);
+//     }
+//   });
+
+//   stream.on("error", (e) => {
+//     console.error("Change stream error:", e);
+//   });
+
+//   req.on("close", () => {
+//     clearInterval(ping);
+//     stream.close();
+//     res.end();
+//   });
+// });
+
+// // app.get("/admin/recent-donations/stream", async (req, res) => {
+// //   const token = req.query.token;
+// //   if (!token) return res.sendStatus(401);
+
+// //   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+// //   if (decoded.role !== "giving-admin") return res.sendStatus(403);
+
+// //   res.setHeader("Content-Type", "text/event-stream");
+// //   res.setHeader("Cache-Control", "no-cache");
+
+// //   const send = async () => {
+// //     const data = await Donation.find({ status: "completed" })
+// //       .sort({ createdAt: -1 })
+// //       .limit(50);
+// //     res.write(`data: ${JSON.stringify(data)}\n\n`);
+// //   };
+
+// //   send();
+
+// //   const stream = Donation.watch([], { fullDocument: "updateLookup" });
+// //   stream.on("change", (c) => {
+// //     if (c.fullDocument?.status === "completed") {
+// //       res.write(`data: ${JSON.stringify([c.fullDocument])}\n\n`);
+// //     }
+// //   });
+
+// //   req.on("close", () => stream.close());
+// // });
+
+// app.get(
+//   "/admin/communities",
+//   requireAdmin("outreach-admin"),
+//   async (req, res) => {
+//     try {
+//       const communities = await Community.find().sort({ name: 1 }).lean();
+//       res.json(communities);
+//     } catch (err) {
+//       console.error("Communities fetch error:", err);
+//       res.status(500).json({ error: "Failed to load communities" });
+//     }
+//   },
+// );
+
+// app.get(
+//   "/admin/community-assignments",
+//   requireAdmin("outreach-admin"),
+//   async (req, res) => {
+//     try {
+//       const assignments = await CommunityAssignment.find().lean();
+//       res.json(assignments);
+//     } catch (err) {
+//       console.error("Assignments fetch error:", err);
+//       res.status(500).json({ error: "Failed to load assignments" });
+//     }
+//   },
+// );
+
+// // app.put(
+// //   "/admin/community-assignments/:communityId",
+// //   requireAdmin("outreach-admin"),
+// //   async (req, res) => {
+// //     try {
+// //       const { communityId } = req.params;
+
+// //       // optional: validate that community exists
+// //       const exists = await Community.exists({ _id: communityId });
+// //       if (!exists)
+// //         return res.status(404).json({ error: "Community not found" });
+
+// //       const patch = req.body || {};
+
+// //       // Basic sanitization for weekly reached:
+// //       if (patch.weekReached && typeof patch.weekReached === "object") {
+// //         for (const [k, v] of Object.entries(patch.weekReached)) {
+// //           const weekNum = Number(k);
+// //           if (weekNum >= 1 && weekNum <= 12) {
+// //             const n = Number(v);
+// //             patch.weekReached[k] =
+// //               Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+// //           } else {
+// //             delete patch.weekReached[k];
+// //           }
+// //         }
+// //       }
+
+// //       if (patch.housesCovered != null) {
+// //         const n = Number(patch.housesCovered);
+// //         patch.housesCovered = Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+// //       }
+
+// //       if (patch.targetTotalPeople != null) {
+// //         const n = Number(patch.targetTotalPeople);
+// //         patch.targetTotalPeople =
+// //           Number.isFinite(n) && n > 0 ? Math.trunc(n) : 24;
+// //       }
+
+// //       const updated = await CommunityAssignment.findOneAndUpdate(
+// //         { communityId },
+// //         { $set: { ...patch, communityId } },
+// //         { upsert: true, new: true }
+// //       ).lean();
+
+// //       res.json(updated);
+// //     } catch (err) {
+// //       console.error("Assignment upsert error:", err);
+// //       res.status(500).json({ error: "Failed to save assignment" });
+// //     }
+// //   }
+// // );
+// app.put(
+//   "/admin/community-assignments/:communityId",
+//   requireAdmin("outreach-admin"),
+//   async (req, res) => {
+//     try {
+//       const { communityId } = req.params;
+
+//       const exists = await Community.exists({ _id: communityId });
+//       if (!exists)
+//         return res.status(404).json({ error: "Community not found" });
+
+//       const patch = req.body || {};
+
+//       // ---- sanitize weekReached (legacy) ----
+//       if (patch.weekReached && typeof patch.weekReached === "object") {
+//         for (const [k, v] of Object.entries(patch.weekReached)) {
+//           const weekNum = Number(k);
+//           if (weekNum >= 1 && weekNum <= 12) {
+//             const n = Number(v);
+//             patch.weekReached[k] =
+//               Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+//           } else {
+//             delete patch.weekReached[k];
+//           }
+//         }
+//       }
+
+//       // ---- sanitize weeklyReports (new scoreboard) ----
+//       if (patch.weeklyReports && typeof patch.weeklyReports === "object") {
+//         const clean = {};
+
+//         for (const [weekKey, report] of Object.entries(patch.weeklyReports)) {
+//           const weekNum = Number(weekKey);
+//           if (!(weekNum >= 1 && weekNum <= 12)) continue;
+//           if (!report || typeof report !== "object") continue;
+
+//           const netGrowthPeople = Math.max(
+//             0,
+//             Math.trunc(Number(report.netGrowthPeople || 0)),
+//           );
+
+//           // retention: clamp 0..100
+//           let retentionPercent = Number(report.retentionPercent || 0);
+//           if (!Number.isFinite(retentionPercent)) retentionPercent = 0;
+//           retentionPercent = Math.max(
+//             0,
+//             Math.min(100, Math.trunc(retentionPercent)),
+//           );
+
+//           const guestReturnees = Math.max(
+//             0,
+//             Math.trunc(Number(report.guestReturnees || 0)),
+//           );
+
+//           const allowedStatuses = new Set(["on-time", "late", "none"]);
+//           const reportingStatus = allowedStatuses.has(report.reportingStatus)
+//             ? report.reportingStatus
+//             : "none";
+
+//           clean[String(weekNum)] = {
+//             netGrowthPeople,
+//             retentionPercent,
+//             guestReturnees,
+//             reportingStatus,
+//           };
+//         }
+
+//         patch.weeklyReports = clean;
+//       }
+
+//       // ---- sanitize other fields ----
+//       if (typeof patch.pcfLeaderName === "string")
+//         patch.pcfLeaderName = patch.pcfLeaderName.trim();
+//       if (typeof patch.cellLeaderName === "string")
+//         patch.cellLeaderName = patch.cellLeaderName.trim();
+
+//       if (patch.housesCovered != null) {
+//         const n = Number(patch.housesCovered);
+//         patch.housesCovered = Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+//       }
+
+//       if (patch.targetTotalPeople != null) {
+//         const n = Number(patch.targetTotalPeople);
+//         patch.targetTotalPeople =
+//           Number.isFinite(n) && n > 0 ? Math.trunc(n) : 24;
+//       }
+
+//       const updated = await CommunityAssignment.findOneAndUpdate(
+//         { communityId },
+//         { $set: patch, $setOnInsert: { communityId } },
+//         { upsert: true, new: true },
+//       ).lean();
+
+//       res.json(updated);
+//     } catch (err) {
+//       console.error("Assignment upsert error:", err);
+//       res.status(500).json({ error: "Failed to save assignment" });
+//     }
+//   },
+// );
+
+// // app.use("/api/spotify", spotifyRoutes);
+
+// // ---------- START ----------
+// app.listen(3000, () => console.log("Server running on 3000"));
+
 // ***********VERSION 7 – FULL SERVER.JS****************
 import express from "express";
 import Stripe from "stripe";
@@ -1894,18 +3002,15 @@ const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ---------- CORS ----------
-const allowedOrigins = process.env.CLIENT_URL.split(",");
+const allowedOrigins = new Set(
+  [...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",") : []), "http://localhost:5173"],
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow Postman / server-to-server
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
+      if (allowedOrigins.has(origin)) return callback(null, true);
       return callback(new Error("CORS not allowed"));
     },
     methods: ["GET", "POST", "PUT", "OPTIONS"],
@@ -2030,120 +3135,6 @@ app.post("/register", async (req, res) => {
 // ✅✅✅ ---------------------------------------------
 
 // ---------- CHECKOUT ----------
-// app.post("/create-checkout-session", async (req, res) => {
-//   const { amount, category, email, frequency } = req.body;
-
-//   if (!amount || !email)
-//     return res.status(400).json({ error: "Missing fields" });
-
-//   const session = await stripe.checkout.sessions.create({
-//     mode: frequency === "monthly" ? "subscription" : "payment",
-//     customer_email: email,
-//     subscription_data:
-//       frequency === "monthly"
-//         ? {
-//             metadata: {
-//               category,
-//               frequency,
-//             },
-//           }
-//         : undefined,
-
-//     line_items: [
-//       {
-//         price_data: {
-//           currency: "cad",
-//           unit_amount: Math.round(Number(amount) * 100),
-//           recurring:
-//             frequency === "monthly" ? { interval: "month" } : undefined,
-//           product_data: { name: `Giving - ${category}` },
-//         },
-//         quantity: 1,
-//       },
-//     ],
-//     success_url: `${process.env.CLIENT_URL}/success`,
-//     cancel_url: `${process.env.CLIENT_URL}/cancel`,
-//   });
-
-//   await Donation.create({
-//     email,
-//     amount,
-//     category,
-//     frequency,
-//     stripeSessionId: session.id,
-//     status: "pending",
-//   });
-
-//   res.json({ url: session.url });
-// });
-
-// app.post("/create-checkout-session", async (req, res) => {
-//   const { amount, category, email, frequency } = req.body;
-
-//   // 🔒 VALIDATE FREQUENCY HERE
-//   const allowed = new Set(["one-time", "weekly", "biweekly", "monthly"]);
-//   if (!allowed.has(frequency)) {
-//     return res.status(400).json({ error: "Invalid frequency" });
-//   }
-
-//   if (!amount || !email || !category || !frequency) {
-//     return res.status(400).json({ error: "Missing fields" });
-//   }
-
-//   const amt = Number(amount);
-//   if (!Number.isFinite(amt) || amt <= 0) {
-//     return res.status(400).json({ error: "Invalid amount" });
-//   }
-
-//   const isRecurring = frequency !== "one-time";
-
-//   // Map your frequency -> Stripe recurring config
-//   const recurring =
-//     frequency === "monthly"
-//       ? { interval: "month" }
-//       : frequency === "weekly"
-//       ? { interval: "week", interval_count: 1 }
-//       : frequency === "biweekly"
-//       ? { interval: "week", interval_count: 2 }
-//       : null;
-
-//   const session = await stripe.checkout.sessions.create({
-//     mode: isRecurring ? "subscription" : "payment",
-//     customer_email: email,
-
-//     subscription_data: isRecurring
-//       ? {
-//           metadata: { category, frequency }, // store both
-//         }
-//       : undefined,
-
-//     line_items: [
-//       {
-//         price_data: {
-//           currency: "cad",
-//           unit_amount: Math.round(amt * 100),
-//           recurring: isRecurring ? recurring : undefined,
-//           product_data: { name: `Giving - ${category}` },
-//         },
-//         quantity: 1,
-//       },
-//     ],
-
-//     success_url: `${process.env.CLIENT_URL}/success`,
-//     cancel_url: `${process.env.CLIENT_URL}/cancel`,
-//   });
-
-//   await Donation.create({
-//     email,
-//     amount: amt,
-//     category,
-//     frequency,
-//     stripeSessionId: session.id,
-//     status: "pending",
-//   });
-
-//   res.json({ url: session.url });
-// });
 app.post("/create-checkout-session", async (req, res) => {
   try {
     const { amount, category, email, frequency, currency } = req.body;
@@ -2220,15 +3211,9 @@ app.post("/create-checkout-session", async (req, res) => {
         : undefined,
       line_items: [
         {
-          // price_data: {
-          //   currency: curr,
-          //   unit_amount: Math.round(amt * 100),
-          //   recurring,
-          //   product_data: { name: `Giving - ${category}` },
-          // },
           price_data: {
             currency: curr,
-            unit_amount: toMinorUnits(amt, curr), // ✅ see helper below
+            unit_amount: toMinorUnits(amt, curr),
             recurring,
             product_data: { name: `Giving - ${category}` },
           },
@@ -2239,17 +3224,19 @@ app.post("/create-checkout-session", async (req, res) => {
       cancel_url: `${process.env.CLIENT_URL}/cancel`,
     });
 
-    await Donation.create({
-      email,
-      amount: amt,
-      currency: currency.toUpperCase(),
-      category,
-      frequency,
-      stripeSessionId: session.id,
-      status: "pending",
-    });
+    if (!isRecurring) {
+      await Donation.create({
+        email,
+        amount: amt,
+        currency: currency.toUpperCase(),
+        category,
+        frequency,
+        stripeSessionId: session.id,
+        status: "pending",
+      });
+    }
 
-    return res.json({ url: session.url });
+    return res.json({ sessionId: session.id, url: session.url });
   } catch (err) {
     console.error("Stripe checkout error:", err);
     return res.status(500).json({ error: err?.message || "Checkout failed" });
@@ -2257,37 +3244,41 @@ app.post("/create-checkout-session", async (req, res) => {
 });
 
 // ---------- STRIPE MANAGE GIVINGS ----------
-app.post("/create-portal-session", async (req, res) => {
-  try {
-    const { email } = req.body;
+app.post(
+  "/create-portal-session",
+  requireAdmin("giving-admin"),
+  async (req, res) => {
+    try {
+      const { email } = req.body;
 
-    if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "Valid email is required" });
-    }
+      if (!email || !email.includes("@")) {
+        return res.status(400).json({ error: "Valid email is required" });
+      }
 
-    // 1) Find the Stripe customer by email
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    const customer = customers.data?.[0];
+      // 1) Find the Stripe customer by email
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      const customer = customers.data?.[0];
 
-    if (!customer) {
-      return res.status(404).json({
-        error:
-          "No Stripe customer found for this email. Make a donation first.",
+      if (!customer) {
+        return res.status(404).json({
+          error:
+            "No Stripe customer found for this email. Make a donation first.",
+        });
+      }
+
+      // 2) Create the Customer Portal session
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customer.id,
+        return_url: `${process.env.CLIENT_URL}/giving`,
       });
+
+      return res.json({ url: portalSession.url });
+    } catch (err) {
+      console.error("Portal session error:", err);
+      return res.status(500).json({ error: err?.message || "Portal failed" });
     }
-
-    // 2) Create the Customer Portal session
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customer.id,
-      return_url: `${process.env.CLIENT_URL}/giving`,
-    });
-
-    return res.json({ url: portalSession.url });
-  } catch (err) {
-    console.error("Portal session error:", err);
-    return res.status(500).json({ error: err?.message || "Portal failed" });
-  }
-});
+  },
+);
 
 // ---------- STRIPE WEBHOOK ----------
 app.post(
@@ -2301,7 +3292,7 @@ app.post(
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET
+        process.env.STRIPE_WEBHOOK_SECRET,
       );
     } catch (err) {
       return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -2311,74 +3302,77 @@ app.post(
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
 
-        // 🔥 Skip subscriptions
-        if (session.mode === "subscription") {
-          // do nothing here, invoice.paid will handle it
-        } else {
+        // One-time payments: mark the pending row completed
+        if (session.mode !== "subscription") {
           await Donation.updateMany(
-            { stripeSessionId: session.id },
-            { status: "completed", stripeCustomerId: session.customer }
+            { stripeSessionId: session.id, status: "pending" },
+            { status: "completed", stripeCustomerId: session.customer },
           );
         }
-
-        await Donation.updateMany(
-          { stripeSessionId: session.id },
-          {
-            status: "completed",
-            stripeCustomerId: session.customer,
-          }
-        );
       }
-
-      // if (event.type === "invoice.paid") {
-      //   const invoice = event.data.object;
-
-      //   const subscription = await stripe.subscriptions.retrieve(
-      //     invoice.subscription
-      //   );
-
-      //   await Donation.create({
-      //     email: invoice.customer_email,
-      //     amount: invoice.amount_paid / 100,
-      //     category: subscription.metadata.category || "general giving",
-      //     frequency: "monthly",
-      //     stripeCustomerId: invoice.customer,
-      //     stripeSessionId: invoice.subscription,
-      //     status: "completed",
-      //   });
-      // }
 
       if (event.type === "invoice.paid") {
         const invoice = event.data.object;
 
+        // Fetch subscription metadata (category/frequency)
         const subscription = await stripe.subscriptions.retrieve(
-          invoice.subscription
+          invoice.subscription,
         );
 
-        await Donation.create({
-          // email: invoice.customer_email,
-          // amount: invoice.amount_paid / 100,
-          // category: subscription.metadata.category || "general giving",
-          // frequency: subscription.metadata.frequency || "monthly", // ✅ now dynamic
-          // stripeCustomerId: invoice.customer,
-          // stripeSessionId: invoice.subscription,
-          // status: "completed",
-          email: invoice.customer_email,
-          amount: fromMinorUnits(invoice.amount_paid, invoice.currency),
-          currency: invoice.currency.toUpperCase(),
-          category: subscription.metadata.category || "general giving",
-          frequency: subscription.metadata.frequency || "monthly",
-          stripeCustomerId: invoice.customer,
-          stripeSessionId: invoice.subscription,
-          status: "completed",
-        });
+        // Email fallback: invoice may not always have customer_email
+        let email = invoice.customer_email;
+        if (!email && invoice.customer) {
+          const customer = await stripe.customers.retrieve(invoice.customer);
+          email = customer?.email || null;
+        }
+
+        // Idempotent upsert: invoice.id is unique per charge
+        await Donation.updateOne(
+          { stripeInvoiceId: invoice.id },
+          {
+            $setOnInsert: {
+              email,
+              amount: fromMinorUnits(invoice.amount_paid, invoice.currency),
+              currency: invoice.currency.toUpperCase(),
+              category: subscription.metadata.category || "general giving",
+              frequency: subscription.metadata.frequency || "monthly",
+              stripeCustomerId: invoice.customer,
+              stripeSessionId: invoice.subscription,
+              status: "completed",
+            },
+          },
+          { upsert: true },
+        );
       }
 
-      res.json({ received: true });
+      // Failed invoices
+      if (event.type === "invoice.payment_failed") {
+        const invoice = event.data.object;
+
+        await Donation.updateOne(
+          { stripeInvoiceId: invoice.id },
+          {
+            $setOnInsert: {
+              email: invoice.customer_email || null,
+              amount: fromMinorUnits(invoice.amount_due, invoice.currency),
+              currency: invoice.currency.toUpperCase(),
+              category: "general giving",
+              frequency: "monthly",
+              stripeCustomerId: invoice.customer,
+              stripeSubscriptionId: invoice.subscription,
+              status: "failed",
+            },
+          },
+          { upsert: true },
+        );
+      }
+
+      return res.json({ received: true });
     } catch (err) {
-      res.status(500).json({ error: "Webhook failed" });
+      console.error("Webhook handler error:", err);
+      return res.status(500).json({ error: "Webhook failed" });
     }
-  }
+  },
 );
 
 // ---------- ADMIN LOGIN ----------
@@ -2392,10 +3386,10 @@ app.post("/admin/login", async (req, res) => {
     email === process.env.GIVING_ADMIN_EMAIL
       ? "giving-admin"
       : email === process.env.REGISTRATION_ADMIN_EMAIL
-      ? "registration-admin"
-      : email === process.env.OUTREACH_ADMIN_EMAIL
-      ? "outreach-admin"
-      : null;
+        ? "registration-admin"
+        : email === process.env.OUTREACH_ADMIN_EMAIL
+          ? "outreach-admin"
+          : null;
 
   if (!role) return res.status(401).json({ error: "Not admin" });
 
@@ -2416,7 +3410,7 @@ app.get(
 
       const totalAttendees = registrations.reduce(
         (sum, r) => sum + (r.attendees || 0),
-        0
+        0,
       );
 
       const chartMap = {};
@@ -2439,7 +3433,7 @@ app.get(
       console.error("Registration dashboard error:", err);
       res.status(500).json({ error: "Failed to load registration dashboard" });
     }
-  }
+  },
 );
 
 // ---------- REGISTRATION CSV EXPORT ----------
@@ -2475,13 +3469,13 @@ app.get(
       ]);
 
       const csv = [header.join(","), ...rows.map((row) => row.join(","))].join(
-        "\n"
+        "\n",
       );
 
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="registrations.csv"`
+        `attachment; filename="registrations.csv"`,
       );
 
       return res.status(200).send(csv);
@@ -2489,7 +3483,7 @@ app.get(
       console.error("CSV export error:", err);
       return res.status(500).json({ error: "Failed to export CSV" });
     }
-  }
+  },
 );
 
 // ---------- RECENT REGISTRATIONS ----------
@@ -2509,74 +3503,10 @@ app.get(
       console.error("Recent registrations error:", err);
       res.status(500).json({ error: "Failed to fetch registrations" });
     }
-  }
+  },
 );
 
 // ---------- GIVING DASHBOARD ----------
-// app.get(
-//   "/admin/giving-dashboard",
-//   requireAdmin("giving-admin"),
-//   async (req, res) => {
-//     const { category, search } = req.query;
-
-//     const query = { status: "completed" };
-
-//     // ✅ Filter by category
-//     if (category && category !== "all") {
-//       query.category = category;
-//     }
-
-//     // ✅ Filter by donor (email for now)
-//     if (search) {
-//       query.email = { $regex: search, $options: "i" };
-//     }
-
-//     const donations = await Donation.find(query);
-
-//     const totalDonations = donations.reduce((s, d) => s + d.amount, 0);
-
-//     // Monthly totals
-//     const monthlyTotals = Object.values(
-//       donations.reduce((acc, d) => {
-//         const m = d.createdAt.toISOString().slice(0, 7);
-//         acc[m] = acc[m] || { month: m, total: 0 };
-//         acc[m].total += d.amount;
-//         return acc;
-//       }, {})
-//     );
-
-//     // ✅ Total donors (unique emails)
-//     const totalDonors = new Set(donations.map((d) => d.email)).size;
-
-//     const isRecurring = (f) => ["weekly", "biweekly", "monthly"].includes(f);
-
-//     const recurringDonors = new Set(
-//       donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email)
-//     ).size;
-
-//     const activeSubscriptionsCount = donations.filter((d) =>
-//       isRecurring(d.frequency)
-//     ).length;
-
-//     // // ✅ Recurring donors (unique emails with monthly frequency)
-//     // const recurringDonors = new Set(
-//     //   donations.filter((d) => d.frequency === "monthly").map((d) => d.email)
-//     // ).size;
-
-//     // // Active subscriptions (already correct)
-//     // const activeSubscriptionsCount = donations.filter(
-//     //   (d) => d.frequency === "monthly"
-//     // ).length;
-
-//     res.json({
-//       totalDonations,
-//       monthlyTotals,
-//       activeSubscriptionsCount,
-//       totalDonors,
-//       recurringDonors,
-//     });
-//   }
-// );
 app.get(
   "/admin/giving-dashboard",
   requireAdmin("giving-admin"),
@@ -2663,7 +3593,7 @@ app.get(
           acc[c].push({ month: row.month, total: Number(row.total || 0) });
           return acc;
         },
-        {}
+        {},
       );
 
       // ---- Currency options (for dropdowns) ----
@@ -2680,12 +3610,16 @@ app.get(
       const totalDonors = new Set(donations.map((d) => d.email)).size;
 
       const recurringDonors = new Set(
-        donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email)
+        donations.filter((d) => isRecurring(d.frequency)).map((d) => d.email),
       ).size;
 
-      const activeSubscriptionsCount = donations.filter((d) =>
-        isRecurring(d.frequency)
-      ).length;
+      const activeSubscriptionsCount = await Donation.distinct(
+        "stripeSubscriptionId",
+        {
+          ...match,
+          stripeSubscriptionId: { $ne: null },
+        },
+      ).then((ids) => ids.length);
 
       res.json({
         // ✅ New (multi-currency-safe)
@@ -2702,7 +3636,7 @@ app.get(
       console.error("Giving dashboard error:", err);
       res.status(500).json({ error: "Failed to load giving dashboard" });
     }
-  }
+  },
 );
 
 // ---------- SSE ----------
@@ -2759,35 +3693,6 @@ app.get("/admin/recent-donations/stream", async (req, res) => {
   });
 });
 
-// app.get("/admin/recent-donations/stream", async (req, res) => {
-//   const token = req.query.token;
-//   if (!token) return res.sendStatus(401);
-
-//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//   if (decoded.role !== "giving-admin") return res.sendStatus(403);
-
-//   res.setHeader("Content-Type", "text/event-stream");
-//   res.setHeader("Cache-Control", "no-cache");
-
-//   const send = async () => {
-//     const data = await Donation.find({ status: "completed" })
-//       .sort({ createdAt: -1 })
-//       .limit(50);
-//     res.write(`data: ${JSON.stringify(data)}\n\n`);
-//   };
-
-//   send();
-
-//   const stream = Donation.watch([], { fullDocument: "updateLookup" });
-//   stream.on("change", (c) => {
-//     if (c.fullDocument?.status === "completed") {
-//       res.write(`data: ${JSON.stringify([c.fullDocument])}\n\n`);
-//     }
-//   });
-
-//   req.on("close", () => stream.close());
-// });
-
 app.get(
   "/admin/communities",
   requireAdmin("outreach-admin"),
@@ -2799,7 +3704,7 @@ app.get(
       console.error("Communities fetch error:", err);
       res.status(500).json({ error: "Failed to load communities" });
     }
-  }
+  },
 );
 
 app.get(
@@ -2813,61 +3718,9 @@ app.get(
       console.error("Assignments fetch error:", err);
       res.status(500).json({ error: "Failed to load assignments" });
     }
-  }
+  },
 );
 
-// app.put(
-//   "/admin/community-assignments/:communityId",
-//   requireAdmin("outreach-admin"),
-//   async (req, res) => {
-//     try {
-//       const { communityId } = req.params;
-
-//       // optional: validate that community exists
-//       const exists = await Community.exists({ _id: communityId });
-//       if (!exists)
-//         return res.status(404).json({ error: "Community not found" });
-
-//       const patch = req.body || {};
-
-//       // Basic sanitization for weekly reached:
-//       if (patch.weekReached && typeof patch.weekReached === "object") {
-//         for (const [k, v] of Object.entries(patch.weekReached)) {
-//           const weekNum = Number(k);
-//           if (weekNum >= 1 && weekNum <= 12) {
-//             const n = Number(v);
-//             patch.weekReached[k] =
-//               Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
-//           } else {
-//             delete patch.weekReached[k];
-//           }
-//         }
-//       }
-
-//       if (patch.housesCovered != null) {
-//         const n = Number(patch.housesCovered);
-//         patch.housesCovered = Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
-//       }
-
-//       if (patch.targetTotalPeople != null) {
-//         const n = Number(patch.targetTotalPeople);
-//         patch.targetTotalPeople =
-//           Number.isFinite(n) && n > 0 ? Math.trunc(n) : 24;
-//       }
-
-//       const updated = await CommunityAssignment.findOneAndUpdate(
-//         { communityId },
-//         { $set: { ...patch, communityId } },
-//         { upsert: true, new: true }
-//       ).lean();
-
-//       res.json(updated);
-//     } catch (err) {
-//       console.error("Assignment upsert error:", err);
-//       res.status(500).json({ error: "Failed to save assignment" });
-//     }
-//   }
-// );
 app.put(
   "/admin/community-assignments/:communityId",
   requireAdmin("outreach-admin"),
@@ -2906,7 +3759,7 @@ app.put(
 
           const netGrowthPeople = Math.max(
             0,
-            Math.trunc(Number(report.netGrowthPeople || 0))
+            Math.trunc(Number(report.netGrowthPeople || 0)),
           );
 
           // retention: clamp 0..100
@@ -2914,12 +3767,12 @@ app.put(
           if (!Number.isFinite(retentionPercent)) retentionPercent = 0;
           retentionPercent = Math.max(
             0,
-            Math.min(100, Math.trunc(retentionPercent))
+            Math.min(100, Math.trunc(retentionPercent)),
           );
 
           const guestReturnees = Math.max(
             0,
-            Math.trunc(Number(report.guestReturnees || 0))
+            Math.trunc(Number(report.guestReturnees || 0)),
           );
 
           const allowedStatuses = new Set(["on-time", "late", "none"]);
@@ -2958,7 +3811,7 @@ app.put(
       const updated = await CommunityAssignment.findOneAndUpdate(
         { communityId },
         { $set: patch, $setOnInsert: { communityId } },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       ).lean();
 
       res.json(updated);
@@ -2966,7 +3819,7 @@ app.put(
       console.error("Assignment upsert error:", err);
       res.status(500).json({ error: "Failed to save assignment" });
     }
-  }
+  },
 );
 
 // app.use("/api/spotify", spotifyRoutes);
