@@ -6,39 +6,59 @@ const donationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     amount: {
-      type: Number, // store in CAD dollars (not cents)
+      type: Number, // major units (e.g. dollars)
       required: true,
     },
+
     category: {
       type: String,
       required: true,
     },
+
     frequency: {
       type: String,
       enum: ["one-time", "weekly", "biweekly", "monthly"],
       required: true,
-      default: "monthly", // optional, but recommended since monthly is your UI default
     },
+
     currency: {
       type: String,
       required: true,
       uppercase: true,
     },
+
+    // 🔹 Checkout session (one-time OR subscription start)
     stripeSessionId: {
       type: String,
-      required: true,
     },
+
+    // 🔹 Stripe subscription (recurring only)
+    stripeSubscriptionId: {
+      type: String,
+      index: true,
+    },
+
+    // 🔹 Stripe invoice (recurring only, unique per charge)
+    stripeInvoiceId: {
+      type: String,
+      unique: true,
+      sparse: true, // allows null for one-time donations
+    },
+
     stripeCustomerId: {
       type: String,
+      index: true,
     },
+
     status: {
       type: String,
-      enum: ["pending", "completed", "canceled"],
-      default: "pending", // pending | completed | failed
+      enum: ["pending", "completed", "failed", "canceled"],
+      default: "pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Donation", donationSchema);

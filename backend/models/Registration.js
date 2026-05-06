@@ -13,8 +13,7 @@ const registrationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Helpful indexes
-registrationSchema.index({ email: 1, createdAt: -1 });
+registrationSchema.index({ createdAt: -1 });
 
 const Registration =
   mongoose.models.Registration ||
