@@ -9,7 +9,7 @@ router.get("/health", (_, res) => res.json({ ok: true }));
 
 router.post("/register", async (req, res) => {
   try {
-    const { fullName, email, phone, attendees } = req.body;
+    const { fullName, email, phone, attendees, registrationType, attendeeNames } = req.body;
 
     if (!fullName || !email || !phone) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -20,7 +20,19 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Attendees must be 1 or more." });
     }
 
-    await Registration.create({ fullName, email, phone, attendees: attendeesNum });
+    const validType = registrationType === "household" ? "household" : "self";
+    const names = Array.isArray(attendeeNames)
+      ? attendeeNames.map((n) => String(n ?? "").trim()).filter(Boolean)
+      : [];
+
+    await Registration.create({
+      fullName,
+      email,
+      phone,
+      attendees: attendeesNum,
+      registrationType: validType,
+      attendeeNames: names,
+    });
 
     return res.status(201).json({
       message: "Registration received! We look forward to seeing you.",

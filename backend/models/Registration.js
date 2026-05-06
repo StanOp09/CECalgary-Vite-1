@@ -7,6 +7,9 @@ const registrationSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     attendees: { type: Number, required: true, min: 1, default: 1 },
 
+    registrationType: { type: String, enum: ["self", "household"], default: "self" },
+    attendeeNames: [{ type: String, trim: true }],
+
     // optional: for basic dedupe / tracking
     source: { type: String, default: "website" },
   },

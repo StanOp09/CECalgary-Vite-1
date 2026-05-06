@@ -86,12 +86,14 @@ router.get("/admin/registrations.csv", requireAdmin("registration-admin"), async
 
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
-    const header = ["Full Name", "Email Address", "Phone Number", "Number of Attendees", "Registered At"];
+    const header = ["Full Name", "Email Address", "Phone Number", "Registration Type", "Number of Attendees", "Attendee Names", "Registered At"];
     const rows   = registrations.map((r) => [
       esc(r.fullName),
       esc(r.email),
       esc(r.phone),
+      esc(r.registrationType ?? "self"),
       esc(r.attendees),
+      esc(Array.isArray(r.attendeeNames) ? r.attendeeNames.join("; ") : ""),
       esc(r.createdAt ? new Date(r.createdAt).toISOString() : ""),
     ]);
 
