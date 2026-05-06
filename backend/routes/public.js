@@ -9,7 +9,7 @@ router.get("/health", (_, res) => res.json({ ok: true }));
 
 router.post("/register", async (req, res) => {
   try {
-    const { fullName, email, phone, attendees, registrationType, attendeeNames } = req.body;
+    const { fullName, email, phone, attendees, registrationType, attendeeNames, needsRide } = req.body;
 
     if (!fullName || !email || !phone) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -32,6 +32,7 @@ router.post("/register", async (req, res) => {
       attendees: attendeesNum,
       registrationType: validType,
       attendeeNames: names,
+      needsRide: needsRide === true,
     });
 
     return res.status(201).json({
