@@ -8,7 +8,6 @@ const Footer = () => {
       </footer>
 
       {/* Spacer div to prevent overlap with content */}
-      <div className="h-24"></div>
     </div>
   );
 };

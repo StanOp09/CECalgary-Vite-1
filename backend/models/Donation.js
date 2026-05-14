@@ -57,6 +57,10 @@ const donationSchema = new mongoose.Schema(
       enum: ["pending", "completed", "failed", "canceled"],
       default: "pending",
     },
+
+    scheduledDate: {
+      type: Date,
+    },
   },
   { timestamps: true },
 );

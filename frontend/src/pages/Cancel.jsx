@@ -2,7 +2,7 @@ import { XCircle } from "lucide-react";
 
 export default function Cancel() {
   return (
-    <section className="w-full min-h-screen bg-gradient-to-b from-rose-50 via-white to-gray-100 flex items-center justify-center px-4 py-20">
+    <section className="w-full min-h-screen bg-gradient-to-b from-rose-50 via-white to-gray-100 flex items-center justify-center px-4 py-20 font-sans">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 sm:p-10 text-center">
         {/* Icon */}
         <div className="flex justify-center mb-6">

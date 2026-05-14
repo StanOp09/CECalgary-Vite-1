@@ -15,7 +15,7 @@ const ImageCard = ({ imageSrc, title, description }) => {
       25, // 25th
       10, // 10 AM
       0, // minutes
-      0 // seconds
+      0, // seconds
     ).getTime();
 
     const interval = setInterval(() => {
@@ -68,7 +68,7 @@ const ImageCard = ({ imageSrc, title, description }) => {
           {/* Title block */}
           <div className="text-center lg:text-left max-w-2xl">
             <p className="text-xs sm:text-sm uppercase tracking-[0.25em] text-white/75">
-              Special Program
+              Special Event
             </p>
 
             <h1 className="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight">

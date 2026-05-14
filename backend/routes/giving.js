@@ -26,7 +26,7 @@ const RECURRING_MAP = {
 
 router.post("/create-checkout-session", async (req, res) => {
   try {
-    const { amount, category, email, frequency, currency } = req.body;
+    const { amount, category, email, frequency, currency, scheduledDate } = req.body;
 
     if (!currency) return res.status(400).json({ error: "Missing currency" });
     const curr = String(currency).toLowerCase();
@@ -46,11 +46,28 @@ router.post("/create-checkout-session", async (req, res) => {
     if (isRecurring && !recurring)
       return res.status(400).json({ error: "Invalid recurring config" });
 
+    // Resolve a valid future Unix timestamp from the optional scheduledDate
+    let anchorTimestamp = null;
+    if (scheduledDate) {
+      const d = new Date(scheduledDate);
+      if (!isNaN(d.getTime()) && d > new Date()) {
+        anchorTimestamp = Math.floor(d.getTime() / 1000);
+      }
+    }
+
     const session = await getStripe().checkout.sessions.create({
       mode: isRecurring ? "subscription" : "payment",
       customer_email: email,
       subscription_data: isRecurring
-        ? { metadata: { category, frequency } }
+        ? {
+            metadata: { category, frequency },
+            ...(anchorTimestamp
+              ? { billing_cycle_anchor: anchorTimestamp, proration_behavior: "none" }
+              : {}),
+          }
+        : undefined,
+      payment_intent_data: !isRecurring
+        ? { metadata: { category, frequency, ...(scheduledDate ? { scheduledDate } : {}) } }
         : undefined,
       line_items: [
         {
@@ -76,6 +93,7 @@ router.post("/create-checkout-session", async (req, res) => {
         frequency,
         stripeSessionId: session.id,
         status: "pending",
+        ...(scheduledDate ? { scheduledDate: new Date(scheduledDate) } : {}),
       });
     }
 

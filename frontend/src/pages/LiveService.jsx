@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Hls from "hls.js";
+import { Link } from "react-router-dom";
 
 export default function LiveService() {
   const [liveVideoId, setLiveVideoId] = useState(null);
@@ -29,11 +29,36 @@ export default function LiveService() {
 
     const checkLive = async () => {
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&maxResults=1&key=${API_KEY}`
-        );
+        const url =
+          `https://www.googleapis.com/youtube/v3/search?` +
+          `part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&maxResults=1&key=${API_KEY}` +
+          `&t=${Date.now()}`;
+
+        const res = await fetch(url, { cache: "no-store" });
+
+        if (!res.ok) {
+          if (!cancelled) setLiveVideoId(null);
+          return;
+        }
+
         const data = await res.json();
-        const videoId = data?.items?.[0]?.id?.videoId || null;
+
+        if (data?.error) {
+          if (!cancelled) setLiveVideoId(null);
+          return;
+        }
+
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const videoId = items[0]?.id?.videoId || null;
+
+        console.log(
+          "YT live items:",
+          data?.items?.length,
+          "videoId:",
+          videoId,
+          "error:",
+          data?.error,
+        );
 
         if (!cancelled) setLiveVideoId(videoId);
       } catch {
@@ -44,7 +69,7 @@ export default function LiveService() {
     };
 
     checkLive();
-    const interval = setInterval(checkLive, 60000);
+    const interval = setInterval(checkLive, 120000);
 
     return () => {
       cancelled = true;
@@ -56,7 +81,6 @@ export default function LiveService() {
   useEffect(() => {
     setHlsError(false);
 
-    // If YouTube is live, ensure any HLS is torn down
     if (isOurChannelLive) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -70,7 +94,6 @@ export default function LiveService() {
     const video = videoRef.current;
     if (!video) return;
 
-    // Clean previous instance
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -80,26 +103,18 @@ export default function LiveService() {
     video.addEventListener("error", onVideoError);
 
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari / iOS native HLS
       video.src = HLS_URL;
-    } else if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-      });
-
-      hlsRef.current = hls;
-
-      hls.loadSource(HLS_URL);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        // Any fatal error → show fallback UI
-        if (data?.fatal) setHlsError(true);
-      });
     } else {
-      // Browser doesn't support HLS
-      setHlsError(true);
+      import("hls.js").then(({ default: Hls }) => {
+        if (!Hls.isSupported()) { setHlsError(true); return; }
+        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        hlsRef.current = hls;
+        hls.loadSource(HLS_URL);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data?.fatal) setHlsError(true);
+        });
+      }).catch(() => setHlsError(true));
     }
 
     return () => {
@@ -113,38 +128,73 @@ export default function LiveService() {
 
   const youtubeSrc = useMemo(() => {
     if (!liveVideoId) return "";
-    // modestbranding + playsinline for cleaner embed
     return `https://www.youtube.com/embed/${liveVideoId}?autoplay=1&mute=0&playsinline=1&modestbranding=1&rel=0`;
   }, [liveVideoId]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-5xl">
-        {/* Title row */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-white text-lg sm:text-xl font-semibold">
-            Live Service
-          </h1>
+    <div className="min-h-screen bg-gray-950 font-sans pt-16">
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400 mb-1">
+              Christ Embassy Calgary
+            </p>
+            <h1 className="font-raleway text-2xl sm:text-3xl font-bold text-white">
+              Live Service
+            </h1>
+          </div>
 
-          {isOurChannelLive && (
-            <span className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-red-600 px-3 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              LIVE
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {loading && (
+              <span className="flex items-center gap-2 text-xs text-white/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                <svg
+                  className="w-3 h-3 animate-spin text-white/50"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                Checking…
+              </span>
+            )}
+
+            {!loading && isOurChannelLive && (
+              <span className="inline-flex items-center gap-2 text-xs font-bold text-white bg-red-600 px-3 py-1.5 rounded-full shadow-lg shadow-red-600/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                LIVE NOW
+              </span>
+            )}
+
+            {!loading && !isOurChannelLive && (
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-white/60 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                Offline
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Player frame */}
+        {/* Player */}
         <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-black">
-          {/* subtle overlay to make UI readable */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-black/0 to-black/50" />
-
           {isOurChannelLive ? (
             <iframe
               className="absolute inset-0 w-full h-full"
               src={youtubeSrc}
               title="YouTube Live Service"
-              frameBorder="0"
+              style={{ border: "none" }}
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
             />
@@ -159,30 +209,210 @@ export default function LiveService() {
             />
           )}
 
+          {/* Initial loading overlay */}
           {loading && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white bg-black/60 px-3 py-1 rounded-full backdrop-blur">
-              Checking live status…
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+              <svg
+                className="w-10 h-10 animate-spin text-amber-400 mb-3"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              <p className="text-white/70 text-sm">Checking live status…</p>
             </div>
           )}
 
+          {/* HLS error state */}
           {!loading && !isOurChannelLive && hlsError && (
-            <div className="absolute inset-0 flex items-center justify-center p-6">
-              <div className="max-w-md text-center bg-black/70 backdrop-blur px-5 py-4 rounded-xl ring-1 ring-white/10">
-                <p className="text-white font-semibold">Stream unavailable</p>
-                <p className="text-white/80 text-sm mt-1">
-                  If this keeps happening, refresh the page or try again in a
-                  minute.
-                </p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+              <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                <svg
+                  className="w-7 h-7 text-white/60"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                  />
+                </svg>
               </div>
+              <p className="text-white font-semibold text-lg font-raleway">
+                Stream unavailable
+              </p>
+              <p className="text-white/60 text-sm mt-2 text-center max-w-xs">
+                The stream is currently offline. Please refresh the page or
+                check back during service hours.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                  />
+                </svg>
+                Refresh
+              </button>
             </div>
+          )}
+
+          {/* Not live — no error — HLS playing; subtle top gradient */}
+          {!loading && (
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
           )}
         </div>
 
-        {/* Footer hint */}
-        {/* <p className="text-white/60 text-xs mt-3">
-          If our YouTube channel is live, it will play here automatically.
-          Otherwise the backup stream loads.
-        </p> */}
+        {/* Service schedule strip */}
+        {!loading && !isOurChannelLive && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 px-1">
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">
+              Next services
+            </p>
+            {[
+              { label: "Sunday Service", time: "10:00 AM" },
+              { label: "Midweek Service", time: "Wed 7:00 PM" },
+              { label: "Communion", time: "1st Sunday 8:00 AM" },
+            ].map((s) => (
+              <span
+                key={s.label}
+                className="inline-flex items-center gap-1.5 text-xs text-white/60 bg-white/5 border border-white/10 rounded-full px-3 py-1"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60" />
+                <span className="font-medium text-white/70">{s.label}</span>
+                <span className="text-white/40">· {s.time}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Below-player CTAs */}
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Give */}
+          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6 backdrop-blur flex flex-col">
+            <div className="flex items-start gap-4 flex-1">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-white font-semibold font-raleway">
+                  Partner with the Ministry
+                </h2>
+                <p className="text-white/55 text-sm mt-1 leading-relaxed">
+                  Give your tithe, offerings, or partnership seed securely
+                  online.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/giving"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
+                         text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-black transition shadow-md shadow-amber-500/20"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+              Give Now
+            </Link>
+          </div>
+
+          {/* Need Help */}
+          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6 backdrop-blur flex flex-col">
+            <div className="flex items-start gap-4 flex-1">
+              <div className="shrink-0 w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-white font-semibold font-raleway">
+                  Need Help?
+                </h2>
+                <p className="text-white/55 text-sm mt-1 leading-relaxed">
+                  Have questions or want to connect with us? We're happy to
+                  help.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/contact"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
+                         text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md shadow-indigo-600/20"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                />
+              </svg>
+              Contact Us
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
