@@ -8,6 +8,9 @@ import Donation from "../models/Donation.js";
 
 const router = Router();
 
+// CLIENT_URL may be comma-separated for CORS — use only the first value for Stripe redirects
+const getClientBase = () => (process.env.CLIENT_URL || "").split(",")[0].trim();
+
 const ALLOWED_CURRENCIES = new Set([
   "usd", "eur", "jpy", "gbp", "aud", "cad", "chf", "cny", "hkd", "nzd",
   "inr", "ngn", "kes", "ghs", "zar", "sgd", "sek", "nok", "dkk", "pln",
@@ -21,6 +24,57 @@ const RECURRING_MAP = {
   weekly: { interval: "week", interval_count: 1 },
   biweekly: { interval: "week", interval_count: 2 },
 };
+
+// ── Scheduled one-time giving (setup mode → charge on due date) ───────────────
+
+router.post("/create-scheduled-checkout", async (req, res) => {
+  try {
+    const { amount, category, email, currency, scheduledDate } = req.body;
+
+    if (!currency) return res.status(400).json({ error: "Missing currency" });
+    const curr = String(currency).toLowerCase();
+    if (!ALLOWED_CURRENCIES.has(curr))
+      return res.status(400).json({ error: "Unsupported currency" });
+    if (!amount || !email || !category || !scheduledDate)
+      return res.status(400).json({ error: "Missing fields" });
+
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0)
+      return res.status(400).json({ error: "Invalid amount" });
+
+    const date = new Date(scheduledDate);
+    if (isNaN(date.getTime()) || date <= new Date())
+      return res.status(400).json({ error: "scheduledDate must be a future date" });
+
+    // Setup mode: collect and save the card — no charge yet
+    const session = await getStripe().checkout.sessions.create({
+      mode: "setup",
+      customer_email: email,
+      currency: curr,
+      setup_intent_data: {
+        metadata: { amount: String(amt), currency: curr, category, scheduledDate },
+      },
+      success_url: `${getClientBase()}/success?scheduled=true`,
+      cancel_url: `${getClientBase()}/cancel`,
+    });
+
+    await Donation.create({
+      email,
+      amount: amt,
+      currency: curr.toUpperCase(),
+      category,
+      frequency: "one-time",
+      stripeSessionId: session.id,
+      scheduledDate: date,
+      status: "scheduled",
+    });
+
+    return res.json({ sessionId: session.id, url: session.url });
+  } catch (err) {
+    console.error("Scheduled checkout error:", err);
+    return res.status(500).json({ error: err?.message || "Checkout failed" });
+  }
+});
 
 // ── Checkout ──────────────────────────────────────────────────────────────────
 
@@ -61,9 +115,9 @@ router.post("/create-checkout-session", async (req, res) => {
       subscription_data: isRecurring
         ? {
             metadata: { category, frequency },
-            ...(anchorTimestamp
-              ? { billing_cycle_anchor: anchorTimestamp, proration_behavior: "none" }
-              : {}),
+            // Use trial_end to delay the first charge to the chosen date —
+            // billing_cycle_anchor is limited to the next natural billing period
+            ...(anchorTimestamp ? { trial_end: anchorTimestamp } : {}),
           }
         : undefined,
       payment_intent_data: !isRecurring
@@ -80,12 +134,16 @@ router.post("/create-checkout-session", async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.CLIENT_URL}/success`,
-      cancel_url: `${process.env.CLIENT_URL}/cancel`,
+      success_url: `${getClientBase()}/success`,
+      cancel_url: `${getClientBase()}/cancel`,
     });
 
+    // Return the URL immediately — webhook handles the completed record.
+    // DB insert here is best-effort for pending tracking only.
+    res.json({ sessionId: session.id, url: session.url });
+
     if (!isRecurring) {
-      await Donation.create({
+      Donation.create({
         email,
         amount: amt,
         currency: currency.toUpperCase(),
@@ -94,10 +152,8 @@ router.post("/create-checkout-session", async (req, res) => {
         stripeSessionId: session.id,
         status: "pending",
         ...(scheduledDate ? { scheduledDate: new Date(scheduledDate) } : {}),
-      });
+      }).catch((e) => console.error("Pending donation record failed:", e.message));
     }
-
-    return res.json({ sessionId: session.id, url: session.url });
   } catch (err) {
     console.error("Stripe checkout error:", err);
     return res.status(500).json({ error: err?.message || "Checkout failed" });
@@ -123,7 +179,7 @@ router.post("/create-portal-session", requireAdmin("giving-admin"), async (req, 
 
     const portalSession = await getStripe().billingPortal.sessions.create({
       customer: customer.id,
-      return_url: `${process.env.CLIENT_URL}/giving`,
+      return_url: `${getClientBase()}/giving`,
     });
 
     return res.json({ url: portalSession.url });
@@ -152,7 +208,18 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      if (session.mode !== "subscription") {
+
+      if (session.mode === "setup") {
+        // Scheduled one-time gift: save the payment method so we can charge later
+        const setupIntent = await getStripe().setupIntents.retrieve(session.setup_intent);
+        await Donation.updateOne(
+          { stripeSessionId: session.id, status: "scheduled" },
+          {
+            stripeCustomerId: session.customer,
+            stripePaymentMethodId: setupIntent.payment_method,
+          },
+        );
+      } else if (session.mode !== "subscription") {
         await Donation.updateMany(
           { stripeSessionId: session.id, status: "pending" },
           { status: "completed", stripeCustomerId: session.customer },

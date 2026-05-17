@@ -59,6 +59,9 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+  const isScheduledOneTime =
+    frequency === "one-time" && scheduledDate && new Date(scheduledDate) > new Date();
+
   const handleGive = async () => {
     setError("");
     const amt = Number(amount);
@@ -79,10 +82,19 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
     setLoading(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
+      const category = showCategorySelect ? selectedCategory : id;
+      const endpoint = isScheduledOneTime
+        ? `${BACKEND_URL}/create-scheduled-checkout`
+        : `${BACKEND_URL}/create-checkout-session`;
+
+      const body = isScheduledOneTime
+        ? { amount: amt, currency, category, email, scheduledDate }
+        : { amount: amt, currency, category, frequency, email, scheduledDate: scheduledDate || null };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amt, currency, category: showCategorySelect ? selectedCategory : id, frequency, email, scheduledDate: scheduledDate || null }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -216,6 +228,8 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
               </svg>
               Processing…
             </>
+          ) : isScheduledOneTime ? (
+            "Schedule Gift"
           ) : (
             "Give Now"
           )}

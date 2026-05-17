@@ -54,12 +54,16 @@ const donationSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "completed", "failed", "canceled"],
+      enum: ["pending", "scheduled", "completed", "failed", "canceled"],
       default: "pending",
     },
 
     scheduledDate: {
       type: Date,
+    },
+
+    stripePaymentMethodId: {
+      type: String,
     },
   },
   { timestamps: true },
