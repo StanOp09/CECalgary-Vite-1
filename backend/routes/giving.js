@@ -46,6 +46,11 @@ router.post("/create-scheduled-checkout", async (req, res) => {
     if (isNaN(date.getTime()) || date <= new Date())
       return res.status(400).json({ error: "scheduledDate must be a future date" });
 
+    // Normalize to end-of-UTC-day so the midnight cron fires on the correct
+    // calendar day for Calgary users (UTC-6/UTC-7) — without this, a date-only
+    // string parses to UTC midnight and the cron charges the evening before.
+    date.setUTCHours(23, 59, 59, 999);
+
     // Setup mode: collect and save the card — no charge yet
     const session = await getStripe().checkout.sessions.create({
       mode: "setup",
