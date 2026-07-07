@@ -2,6 +2,7 @@ node_modules
 .env
 dist
 .env.local
+.DS_Store
 
 *.mp4
 *.mov
