@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { getAdminRedirectPath } from "../../utils/adminAuth";
 
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
-  const adminPath = getAdminRedirectPath();
 
   const links = [
     { name: "Home", path: "/" },
@@ -26,7 +24,7 @@ export default function NavBar() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur border-b border-gray-100">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
         <div className="h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 ">
@@ -67,17 +65,6 @@ export default function NavBar() {
             ))}
           </div>
 
-          {/* Desktop admin button */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              to={adminPath || "/admin/login"}
-              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white
-                         bg-indigo-600 hover:bg-indigo-700 shadow-sm transition"
-            >
-              AdminOnly
-            </Link>
-          </div>
-
           {/* Mobile button */}
           <button
             type="button"
@@ -104,7 +91,7 @@ export default function NavBar() {
           isOpen ? "max-h-96" : "max-h-0"
         }`}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 space-y-1">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-3 space-y-1">
           {links.map((l) => (
             <NavLink
               key={l.name}
@@ -122,14 +109,6 @@ export default function NavBar() {
               {l.name}
             </NavLink>
           ))}
-
-          <Link
-            to={adminPath || "/admin/login"}
-            onClick={closeMenu}
-            className="mt-2 block rounded-xl px-4 py-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition"
-          >
-            AdminOnly
-          </Link>
         </div>
       </div>
     </nav>

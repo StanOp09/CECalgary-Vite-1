@@ -1,6 +1,6 @@
 export default function AboutPage() {
   return (
-    <div className="max-w-6xl mx-auto px-6 pb-20 font-sans text-gray-800">
+    <div className="max-w-[1400px] mx-auto px-6 pb-20 font-sans text-gray-800">
       {/* Page Title */}
       <h1 className="text-4xl font-bold mb-8 text-center mt-16">
         About Christ Embassy Calgary Church

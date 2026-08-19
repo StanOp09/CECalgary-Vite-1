@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, ScrollRestoration } from "react-router-dom";
 import NavBar from "../components/layout/NavBar";
 import Footer from "../components/layout/Footer";
 
@@ -9,11 +9,12 @@ export default function MainLayout() {
         <NavBar />
       </header>
 
-      <main className="flex-1 pb-20">
+      <main className="flex-1">
         <Outlet />
       </main>
 
       <Footer />
+      <ScrollRestoration />
     </div>
   );
 }

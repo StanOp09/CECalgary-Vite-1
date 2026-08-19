@@ -1,39 +1,54 @@
 export default function GivingHero() {
   return (
-    <div className="bg-gradient-to-br from-indigo-700 via-indigo-600 to-indigo-800 px-4 pt-20 pb-16 text-center relative overflow-hidden">
-      <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
-      <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
+    <div>
+      {/* Photo */}
+      <div className="relative w-full h-[70vh] min-h-[480px] overflow-hidden">
+        <img
+          src="/images/support.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-black" />
+      </div>
 
-      <div className="relative max-w-2xl mx-auto">
-        <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-300 mb-3">
-          Christ Embassy Calgary
-        </p>
-        <h1 className="font-raleway text-3xl sm:text-4xl font-bold text-white mb-5">
-          Give Online
-        </h1>
+      {/* Black band */}
+      <div className="bg-black px-4 py-14">
+        <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400 mb-4">
+              Christ Embassy Calgary
+            </p>
+            <h1 className="font-raleway text-4xl sm:text-5xl font-bold text-white leading-tight">
+              Giving is our <span className="italic font-normal text-amber-300">act of worship.</span>
+            </h1>
 
-        <blockquote>
-          <p className="text-indigo-100 italic text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-            "For I can testify that they gave not only what they could afford, but far more.
-            And they did it of their own free will."
-          </p>
-          <footer className="mt-2 text-amber-300 font-bold text-sm">
-            2 Corinthians 8:3 (NLT)
-          </footer>
-        </blockquote>
+            <blockquote className="mt-5">
+              <p className="text-white/70 italic text-sm sm:text-base leading-relaxed max-w-xl">
+                "For I can testify that they gave not only what they could afford, but far more.
+                And they did it of their own free will."
+              </p>
+              <footer className="mt-2 text-amber-300 font-bold text-sm">
+                2 Corinthians 8:3 (NLT)
+              </footer>
+            </blockquote>
+          </div>
+
+          <a
+            href="#ways-to-give"
+            className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-amber-50 transition shadow-sm shrink-0 self-start lg:self-end"
+          >
+            Give Now
+          </a>
+        </div>
 
         {/* Trust badges */}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {[
-            { label: "Secure Payments", color: "bg-white/10 text-white/80" },
-            { label: "One-Time or Recurring", color: "bg-white/10 text-white/80" },
-            { label: "Manage Anytime", color: "bg-white/10 text-white/80" },
-          ].map((b) => (
+        <div className="max-w-[1400px] mx-auto mt-8 flex flex-wrap gap-3">
+          {["Secure Payments", "One-Time or Recurring", "Manage Anytime"].map((label) => (
             <span
-              key={b.label}
-              className={`${b.color} border border-white/20 text-xs font-semibold px-4 py-1.5 rounded-full`}
+              key={label}
+              className="text-xs font-semibold text-white/70 bg-white/5 border border-white/15 px-4 py-1.5 rounded-full"
             >
-              {b.label}
+              {label}
             </span>
           ))}
         </div>

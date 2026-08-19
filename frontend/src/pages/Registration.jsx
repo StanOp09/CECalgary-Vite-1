@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import NoSpecialEvents from "../components/layout/NoSpecialEvents";
 
-const EVENT_DATE = new Date("2026-05-31T18:00:00");
-const EVENT_EXPIRY = new Date("2026-06-01T06:00:00");
+const EVENT_DATE = new Date("2026-08-30T11:00:00");
+const EVENT_EXPIRY = new Date("2026-08-30T14:00:00");
 const NAV_H = 64; // px — matches h-16 in NavBar
 
 const STYLES = `
@@ -19,8 +19,8 @@ const STYLES = `
     100% { background-position:  200% center; }
   }
   @keyframes glowPulse {
-    0%,100% { box-shadow: 0 0 24px rgba(168,85,247,.4), 0 0 48px rgba(99,102,241,.2); }
-    50%     { box-shadow: 0 0 48px rgba(168,85,247,.8), 0 0 90px rgba(99,102,241,.4); }
+    0%,100% { box-shadow: 0 0 24px rgba(220,38,38,.4), 0 0 48px rgba(37,99,235,.2); }
+    50%     { box-shadow: 0 0 48px rgba(220,38,38,.8), 0 0 90px rgba(37,99,235,.4); }
   }
   @keyframes slideUp {
     from { opacity:0; transform:translateY(48px); }
@@ -39,8 +39,8 @@ const STYLES = `
     to   { transform:translateY(0);     opacity:1; }
   }
   @keyframes borderPulse {
-    0%,100% { border-color:rgba(168,85,247,.2); }
-    50%     { border-color:rgba(168,85,247,.6); }
+    0%,100% { border-color:rgba(245,158,11,.2); }
+    50%     { border-color:rgba(245,158,11,.6); }
   }
   @keyframes bgDrift {
     0%,100% { background-position:0% 50%;   }
@@ -55,7 +55,7 @@ const STYLES = `
     to   { transform:rotate(360deg); }
   }
   .ms-shimmer {
-    background: linear-gradient(90deg,#f59e0b 0%,#fde68a 30%,#fff 50%,#fde68a 70%,#f59e0b 100%);
+    background: linear-gradient(90deg,#dc2626 0%,#fff 25%,#2563eb 50%,#fff 75%,#dc2626 100%);
     background-size:200% auto;
     -webkit-background-clip:text; background-clip:text;
     -webkit-text-fill-color:transparent;
@@ -122,10 +122,10 @@ function useScrollReveal(threshold = 0.12) {
 
 export default function RegistrationPage() {
   if (Date.now() > EVENT_EXPIRY.getTime()) return <NoSpecialEvents />;
-  return <MiracleServicePage />;
+  return <MabuhayDayPage />;
 }
 
-function MiracleServicePage() {
+function MabuhayDayPage() {
   const countdown = useCountdown(EVENT_DATE);
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -143,14 +143,14 @@ function MiracleServicePage() {
   const [formError, setFormError] = useState("");
 
   const [particles] = useState(() =>
-    Array.from({ length: 22 }, (_, i) => ({
+    Array.from({ length: 32 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
       size: Math.random() * 3 + 1.5,
-      dur: (Math.random() * 8 + 6).toFixed(1),
+      dur: (Math.random() * 6 + 4).toFixed(1),
       delay: (Math.random() * 6).toFixed(1),
-      gold: Math.random() > 0.55,
+      tone: ["red", "blue", "white"][Math.floor(Math.random() * 3)],
     })),
   );
 
@@ -201,6 +201,7 @@ function MiracleServicePage() {
         ? formData.attendeeNames.slice(0, formData.householdCount)
         : [],
       needsRide: formData.needsRide,
+      source: "mabuhay-day",
     };
     try {
       const ctrl = new AbortController();
@@ -255,16 +256,15 @@ function MiracleServicePage() {
   return (
     <>
       <style>{STYLES}</style>
-      <div className="bg-black text-white">
+      <div className="bg-black text-white pt-16">
         {/* ── SPLIT LAYOUT (desktop lg+) ──────────────────────────────────────── */}
-        <div className="hidden lg:flex">
+        <div className="hidden lg:flex items-start">
           {/* LEFT — sticky form panel */}
           <aside
-            className="hidden lg:flex flex-col flex-shrink-0 w-[340px] xl:w-[380px] ms-panel-bg overflow-y-auto"
+            className="hidden lg:flex flex-col flex-shrink-0 w-[340px] xl:w-[380px] ms-panel-bg"
             style={{
               position: "sticky",
               top: `${NAV_H}px`,
-              height: `calc(100vh - ${NAV_H}px)`,
               borderRight: "1px solid rgba(255,255,255,0.06)",
             }}
           >
@@ -284,9 +284,12 @@ function MiracleServicePage() {
                     top: `${p.y * 2}px`,
                     width: `${p.size}px`,
                     height: `${p.size}px`,
-                    background: p.gold
-                      ? "rgba(251,191,36,0.55)"
-                      : "rgba(168,85,247,0.6)",
+                    background:
+                      p.tone === "red"
+                        ? "rgba(220,38,38,0.6)"
+                        : p.tone === "blue"
+                          ? "rgba(59,130,246,0.6)"
+                          : "rgba(255,255,255,0.7)",
                     animation: `${p.id % 2 === 0 ? "float" : "floatB"} ${p.dur}s ease-in-out ${p.delay}s infinite`,
                     zIndex: 0,
                   }}
@@ -297,7 +300,34 @@ function MiracleServicePage() {
 
             <CardsSection />
             <DetailsBar />
-            <RideCallout />
+            <TextBlock
+              eyebrow="See It For Yourself"
+              flag
+              lines={["Many Hearts || One Community || One Day", "To Come Together"]}
+              accentColor="rgba(220,38,38,.8)"
+            />
+            <VideoCard
+              src="/Mabuhay_day_promovid.mp4"
+              ring="hover:ring-red-500/50"
+              autoplay
+            />
+            <TextBlock
+              eyebrow="Real Testimonies"
+              title="Bri's Testimony"
+              text="Hear how God has moved in the life of one of our own."
+              accentColor="rgba(59,130,246,.7)"
+            />
+            <VideoCard src="/bri-testimony.mp4" ring="hover:ring-blue-500/50" />
+            <TextBlock
+              title="Stanley's Testimony"
+              text="Another testimony of faith from someone right here in our Calgary family."
+              accentColor="rgba(59,130,246,.7)"
+            />
+            <VideoCard src="/stanley-testimony.mp4" ring="hover:ring-blue-500/50" />
+            <TextBlock
+              text="These are just a few of the testimonies waiting to be written on Mabuhay Day. Yours could be next."
+              accentColor="rgba(220,38,38,.7)"
+            />
             <ExpectSection />
             <RightFooterStrip />
           </div>
@@ -320,7 +350,34 @@ function MiracleServicePage() {
             <HeroContent mobile />
             <CardsSection />
             <DetailsBar />
-            <RideCallout />
+            <TextBlock
+              eyebrow="See It For Yourself"
+              flag
+              lines={["Many Hearts || One Community || One Day", "To Come Together"]}
+              accentColor="rgba(220,38,38,.8)"
+            />
+            <VideoCard
+              src="/Mabuhay_day_promovid.mp4"
+              ring="hover:ring-red-500/50"
+              autoplay
+            />
+            <TextBlock
+              eyebrow="Real Testimonies"
+              title="Bri's Testimony"
+              text="Hear how God has moved in the life of one of our own."
+              accentColor="rgba(59,130,246,.7)"
+            />
+            <VideoCard src="/bri-testimony.mp4" ring="hover:ring-blue-500/50" />
+            <TextBlock
+              title="Stanley's Testimony"
+              text="Another testimony of faith from someone right here in our Calgary family."
+              accentColor="rgba(59,130,246,.7)"
+            />
+            <VideoCard src="/stanley-testimony.mp4" ring="hover:ring-blue-500/50" />
+            <TextBlock
+              text="These are just a few of the testimonies waiting to be written on Mabuhay Day. Yours could be next."
+              accentColor="rgba(220,38,38,.7)"
+            />
             <ExpectSection />
           </div>
         </div>
@@ -352,42 +409,42 @@ function FormPanel({
     >
       {/* Branding */}
       <div className="text-center mb-5">
-        <p className="text-[9px] font-black tracking-[0.5em] uppercase text-purple-400/70 mb-3">
-          Christ Embassy Calgary
+        <p className="text-[9px] font-black tracking-[0.5em] uppercase text-amber-400/70 mb-3">
+          🇵🇭 Christ Embassy Calgary
         </p>
         <h2
           className="font-raleway font-black leading-none text-white"
           style={{ fontSize: mobile ? "2rem" : "1.75rem" }}
         >
-          MIRACLE
+          MABUHAY
           <br />
-          <span className="ms-shimmer">SERVICE</span>
+          <span className="ms-shimmer">DAY</span>
         </h2>
         <p className="mt-2 text-white/40 text-xs font-medium tracking-wider">
-          Sunday · May 31, 2026 · 6 PM
+          Sunday · August 30, 2026 · 11 AM
         </p>
       </div>
 
       {/* Compact countdown */}
       <div className="mb-5">
         {countdown.over ? (
-          <p className="text-center text-sm font-bold text-purple-300 animate-pulse py-2">
+          <p className="text-center text-sm font-bold text-amber-300 animate-pulse py-2">
             ✨ Happening now!
           </p>
         ) : (
           <div className="flex justify-center gap-2">
             {[
-              { label: "D", value: countdown.days },
-              { label: "H", value: countdown.hours },
-              { label: "M", value: countdown.minutes },
-              { label: "S", value: countdown.seconds },
-            ].map(({ label, value }) => (
+              { label: "D", value: countdown.days, color: "rgba(220,38,38,.7)" },
+              { label: "H", value: countdown.hours, color: "rgba(255,255,255,.6)" },
+              { label: "M", value: countdown.minutes, color: "rgba(37,99,235,.7)" },
+              { label: "S", value: countdown.seconds, color: "rgba(220,38,38,.7)" },
+            ].map(({ label, value, color }) => (
               <div key={label} className="flex flex-col items-center gap-1">
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center ms-border-pulse"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center"
                   style={{
                     background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(168,85,247,.25)",
+                    border: `1.5px solid ${color}`,
                   }}
                 >
                   <span
@@ -397,7 +454,10 @@ function FormPanel({
                     {String(value).padStart(2, "0")}
                   </span>
                 </div>
-                <span className="text-[8px] font-bold tracking-widest uppercase text-purple-400/55">
+                <span
+                  className="text-[8px] font-bold tracking-widest uppercase"
+                  style={{ color }}
+                >
                   {label}
                 </span>
               </div>
@@ -453,7 +513,7 @@ function FormPanel({
               We&apos;ll be in touch. See you on
               <br />
               <span className="text-amber-400 font-semibold">
-                Sunday, May 31st
+                Sunday, August 30th
               </span>
               .
             </p>
@@ -463,7 +523,7 @@ function FormPanel({
           </p>
           <button
             onClick={onReset}
-            className="mt-2 text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2 transition"
+            className="mt-2 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition"
           >
             + Register another person
           </button>
@@ -515,7 +575,7 @@ function FormPanel({
                   required
                   disabled={loading}
                   className="w-full pl-8 pr-3 py-2.5 rounded-xl text-base text-white placeholder-white/20
-                             focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-transparent
+                             focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-transparent
                              disabled:opacity-40 transition"
                   style={{
                     background: "rgba(255,255,255,0.05)",
@@ -547,13 +607,13 @@ function FormPanel({
                   className={`flex-1 py-2 px-2 rounded-xl text-sm font-bold transition-all duration-200
                     ${
                       formData.registrationType === value
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
                         : "text-white/50 hover:text-white/75 hover:bg-white/5"
                     }`}
                   style={{
                     border:
                       formData.registrationType === value
-                        ? "1px solid rgba(168,85,247,0.5)"
+                        ? "1px solid rgba(37,99,235,0.5)"
                         : "1px solid rgba(255,255,255,0.09)",
                   }}
                 >
@@ -620,7 +680,7 @@ function FormPanel({
                     onChange={(e) => onNameChange(i, e.target.value)}
                     disabled={loading}
                     className="w-full px-3 py-2 rounded-xl text-base text-white placeholder-white/20
-                               focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-transparent
+                               focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-transparent
                                disabled:opacity-40 transition"
                     style={{
                       background: "rgba(255,255,255,0.05)",
@@ -647,7 +707,7 @@ function FormPanel({
               className="w-full py-3 px-4 rounded-xl font-black text-sm transition-all duration-200 flex items-center justify-between disabled:opacity-40"
               style={
                 formData.needsRide
-                  ? { background: "rgba(168,85,247,0.25)", border: "2px solid rgba(168,85,247,0.7)", color: "#fff" }
+                  ? { background: "rgba(37,99,235,0.25)", border: "2px solid rgba(37,99,235,0.7)", color: "#fff" }
                   : { background: "rgba(255,255,255,0.04)", border: "2px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }
               }
             >
@@ -656,7 +716,7 @@ function FormPanel({
                 className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
                 style={
                   formData.needsRide
-                    ? { background: "rgba(168,85,247,0.8)" }
+                    ? { background: "rgba(37,99,235,0.8)" }
                     : { background: "rgba(255,255,255,0.1)" }
                 }
               >
@@ -669,8 +729,8 @@ function FormPanel({
             </button>
 
             {formData.needsRide && (
-              <p className="mt-2 text-xs rounded-lg px-3 py-2" style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)", color: "rgba(255,255,255,0.6)" }}>
-                Kindly contact <span className="font-bold text-purple-300">587-200-7291</span> to arrange your ride.
+              <p className="mt-2 text-xs rounded-lg px-3 py-2" style={{ background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.2)", color: "rgba(255,255,255,0.6)" }}>
+                Kindly contact <span className="font-bold text-blue-300">587-200-7291</span> to arrange your ride.
               </p>
             )}
           </div>
@@ -684,12 +744,12 @@ function FormPanel({
           <button
             type="submit"
             disabled={loading}
-            className="mt-auto w-full py-3 rounded-xl font-black text-black text-base
-                       bg-gradient-to-r from-amber-400 to-yellow-300
-                       hover:from-amber-300 hover:to-yellow-200
+            className="mt-auto w-full py-3 rounded-xl font-black text-white text-base
+                       bg-gradient-to-r from-red-600 via-red-500 to-blue-600
+                       hover:from-red-500 hover:via-red-400 hover:to-blue-500
                        disabled:opacity-40 disabled:cursor-not-allowed
                        transition-all duration-200 hover:scale-[1.02] ms-glow-btn
-                       shadow-lg shadow-amber-400/20"
+                       shadow-lg shadow-red-500/20"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -740,7 +800,7 @@ function HeroContent({ mobile }) {
                   ${mobile ? "px-5 pt-16 pb-12" : "px-8 pt-20 pb-16"} min-h-[60vh]`}
     >
       <p
-        className="ms-fade-in text-[10px] font-black tracking-[0.5em] uppercase text-purple-400 mb-5"
+        className="ms-fade-in text-[10px] font-black tracking-[0.5em] uppercase text-amber-400 mb-5"
         style={{ animationDelay: "0.05s" }}
       >
         Christ Embassy Calgary · Presents
@@ -753,15 +813,15 @@ function HeroContent({ mobile }) {
           animationDelay: "0.15s",
         }}
       >
-        <span className="block text-white">MIRACLE</span>
-        <span className="block ms-shimmer">SERVICE</span>
+        <span className="block text-white">MABUHAY</span>
+        <span className="block ms-shimmer">DAY</span>
       </h1>
 
       <div
         className="ms-line-expand w-40 h-px mb-6"
         style={{
           background:
-            "linear-gradient(90deg,transparent,rgba(168,85,247,0.8),transparent)",
+            "linear-gradient(90deg,transparent,rgba(245,158,11,0.8),transparent)",
         }}
       />
 
@@ -769,10 +829,10 @@ function HeroContent({ mobile }) {
         className="ms-fade-in text-white/50 text-base sm:text-lg max-w-sm leading-relaxed"
         style={{ animationDelay: "0.35s" }}
       >
-        An evening of signs, wonders & transformation.
+        A joyful celebration of faith, culture & community.
         <br />
         <span className="text-white/75 font-medium">
-          Sunday, May 31 · Calgary, AB · Free
+          Sunday, August 30 · Calgary, AB · Free
         </span>
       </p>
 
@@ -796,17 +856,17 @@ function CardsSection() {
       <div
         className={`text-center mb-10 transition-all duration-700 ${visible ? "ms-slide-up" : "opacity-0 translate-y-8"}`}
       >
-        <p className="text-[10px] font-black tracking-[0.4em] uppercase text-purple-400 mb-2">
+        <p className="text-[10px] font-black tracking-[0.4em] uppercase text-amber-400 mb-2">
           The Event
         </p>
         <h2 className="font-raleway text-2xl sm:text-4xl font-black text-white">
-          May 31 · Calgary
+          August 30 · Calgary
         </h2>
         <div
           className="mx-auto mt-3 h-px w-24"
           style={{
             background:
-              "linear-gradient(90deg,transparent,rgba(168,85,247,.6),transparent)",
+              "linear-gradient(90deg,transparent,rgba(245,158,11,.6),transparent)",
           }}
         />
       </div>
@@ -817,13 +877,13 @@ function CardsSection() {
         >
           <div
             className="rounded-2xl sm:rounded-3xl overflow-hidden ring-1 ring-white/10
-                        hover:ring-purple-500/50 hover:-translate-y-2 hover:scale-[1.01]
+                        hover:ring-amber-500/50 hover:-translate-y-2 hover:scale-[1.01]
                         transition-all duration-500"
             style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.7)" }}
           >
             <img
-              src="/Miracle-Service2.jpeg"
-              alt="Miracle Service"
+              src="/images/mabuhay-day-card.png"
+              alt="Mabuhay Day"
               className="w-full h-auto object-cover"
               />
             </div>
@@ -833,12 +893,101 @@ function CardsSection() {
   );
 }
 
+// Renders a line of text, styling any "||" separators as a subtle divider.
+function LineWithDividers({ line }) {
+  const parts = line.split("||");
+  return parts.map((part, i) => (
+    <span key={i}>
+      {i > 0 && <span className="mx-2 sm:mx-3 text-white/25 font-normal">||</span>}
+      {part.trim()}
+    </span>
+  ));
+}
+
+function TextBlock({ eyebrow, title, text, lines, accentColor = "rgba(245,158,11,.7)", flag = false }) {
+  const [ref, visible] = useScrollReveal();
+
+  return (
+    <section
+      ref={ref}
+      className="px-5 sm:px-8 py-10 sm:py-14 max-w-3xl mx-auto w-full text-center"
+    >
+      <div
+        className={`transition-all duration-700 ${visible ? "ms-slide-up" : "opacity-0 translate-y-8"}`}
+      >
+        {eyebrow && (
+          <p
+            className="text-[10px] font-black tracking-[0.4em] uppercase mb-2 flex items-center justify-center gap-2"
+            style={{ color: accentColor }}
+          >
+            {flag && <span className="text-sm">🇵🇭</span>}
+            {eyebrow}
+          </p>
+        )}
+        {title && (
+          <h2 className="font-raleway text-2xl sm:text-3xl font-black text-white mb-3">
+            {title}
+          </h2>
+        )}
+
+        {lines ? (
+          <div className="max-w-2xl mx-auto leading-relaxed">
+            {lines.map((line, i) => (
+              <p
+                key={i}
+                className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"} ${
+                  i === 0
+                    ? "font-raleway font-black text-xl sm:text-2xl text-white"
+                    : "mt-2 font-raleway font-bold text-base sm:text-lg text-white/60"
+                }`}
+                style={{ transitionDelay: `${i * 0.18}s` }}
+              >
+                <LineWithDividers line={line} />
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="text-white/50 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
+            {text}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function VideoCard({ src, ring, autoplay = false }) {
+  const [ref, visible] = useScrollReveal();
+  return (
+    <section ref={ref} className="px-5 sm:px-8 pb-6 max-w-3xl mx-auto w-full">
+      <div
+        className={`transition-all duration-700 ${visible ? "ms-scale-in" : "opacity-0 scale-95"}`}
+      >
+        <div
+          className={`rounded-2xl sm:rounded-3xl overflow-hidden ring-1 ring-white/10 ${ring}
+                      hover:-translate-y-1 transition-all duration-500 bg-black`}
+          style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.7)" }}
+        >
+          <video
+            controls
+            preload="metadata"
+            className="w-full aspect-video bg-black"
+            {...(autoplay ? { autoPlay: true, muted: true, loop: true, playsInline: true } : {})}
+          >
+            <source src={src} />
+          </video>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function DetailsBar() {
   const [ref, visible] = useScrollReveal();
   const items = [
-    { label: "Date", value: "Sunday, May 31" },
-    { label: "Time", value: "6:00 PM" },
-    { label: "Location", value: "Calgary, AB" },
+    { label: "Date", value: "Sunday, Aug 30" },
+    { label: "Time", value: "11 AM" },
+    { label: "Location", value: "2925 10 Ave NE, Calgary" },
     { label: "Admission", value: "Free Entry" },
   ];
   return (
@@ -862,7 +1011,7 @@ function DetailsBar() {
             className="flex flex-col items-center py-5 px-3 text-center gap-1"
             style={{ borderColor: "rgba(255,255,255,0.07)" }}
           >
-            <span className="text-[11px] font-black tracking-widest uppercase text-purple-400/65">
+            <span className="text-[11px] font-black tracking-widest uppercase text-amber-400/65">
               {label}
             </span>
             <span className="font-bold text-white text-base">{value}</span>
@@ -873,54 +1022,28 @@ function DetailsBar() {
   );
 }
 
-function RideCallout() {
-  const [ref, visible] = useScrollReveal();
-  return (
-    <section ref={ref} className="px-5 sm:px-8 pb-10 max-w-3xl mx-auto w-full">
-      <div
-        className={`rounded-2xl px-5 py-4 transition-all duration-700 ${visible ? "ms-fade-in" : "opacity-0"}`}
-        style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.2)" }}
-      >
-        <div>
-          <p className="text-white font-bold text-sm">Need a free ride?</p>
-          <p className="text-white/55 text-sm mt-0.5">
-            Call or text{" "}
-            <a
-              href="tel:5872007291"
-              className="text-purple-300 font-semibold hover:text-purple-200 transition"
-            >
-              587-200-7291
-            </a>{" "}
-            to arrange a pickup.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ExpectSection() {
   const [ref, visible] = useScrollReveal();
   const items = [
     {
-      icon: "⚡",
-      title: "Electric Energy",
-      desc: "A charged atmosphere from start to finish.",
+      title: "Warm Hospitality",
+      desc: "A welcoming space, Filipino-style — full of warmth.",
+      accent: "245,158,11",
     },
     {
-      icon: "✨",
-      title: "Supernatural Signs",
-      desc: "Come expecting the impossible.",
+      title: "Powerful Message",
+      desc: "Real stories of faith from our own community.",
+      accent: "59,130,246",
     },
     {
-      icon: "🎵",
-      title: "Soul-Moving Music",
-      desc: "Worship that stirs something deep inside.",
+      title: "Vibrant Worship",
+      desc: "Music and culture that moves the soul.",
+      accent: "220,38,38",
     },
     {
-      icon: "🌟",
-      title: "Real Transformation",
-      desc: "Come with a need. Leave with a story.",
+      title: "Community & Fellowship",
+      desc: "Come as a stranger. Leave as family.",
+      accent: "245,158,11",
     },
   ];
   return (
@@ -935,7 +1058,7 @@ function ExpectSection() {
           What to Expect
         </p>
         <h2 className="font-raleway text-2xl sm:text-3xl font-black text-white">
-          Not Your Typical Night
+          You're Warmly Welcomed
         </h2>
         <div
           className="mx-auto mt-3 h-px w-24"
@@ -956,9 +1079,9 @@ function ExpectSection() {
               animationDelay: `${i * 0.1}s`,
               background: "rgba(255,255,255,0.03)",
               border: "1px solid rgba(255,255,255,0.07)",
+              borderTop: `2px solid rgba(${item.accent},.6)`,
             }}
           >
-            <div className="text-3xl sm:text-4xl mb-2.5">{item.icon}</div>
             <h3 className="font-raleway font-bold text-white text-xs sm:text-sm mb-1.5">
               {item.title}
             </h3>
@@ -977,7 +1100,7 @@ function RightFooterStrip() {
       style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
     >
       <p className="text-white/20 text-xs tracking-widest uppercase font-semibold">
-        Free entry · Everyone welcome · Bring a friend
+        Free entry · Maligayang Pagdating · Bring a friend
       </p>
     </div>
   );

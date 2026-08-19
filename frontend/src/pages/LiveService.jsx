@@ -133,14 +133,14 @@ export default function LiveService() {
 
   return (
     <div className="min-h-screen bg-gray-950 font-sans pt-16">
-      <div className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-[1300px] mx-auto px-4 py-10">
         {/* Page header */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-400 mb-1">
               Christ Embassy Calgary
             </p>
-            <h1 className="font-raleway text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="font-raleway text-3xl sm:text-4xl font-bold text-white">
               Live Service
             </h1>
           </div>
@@ -312,103 +312,35 @@ export default function LiveService() {
         )}
 
         {/* Below-player CTAs */}
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 pt-8 border-t border-white/10">
           {/* Give */}
-          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6 backdrop-blur flex flex-col">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-white font-semibold font-raleway">
-                  Partner with the Ministry
-                </h2>
-                <p className="text-white/55 text-sm mt-1 leading-relaxed">
-                  Give your tithe, offerings, or partnership seed securely
-                  online.
-                </p>
-              </div>
-            </div>
+          <div className="border-t-2 border-amber-400 pt-6 flex flex-col">
+            <h2 className="text-white font-raleway font-bold text-lg">
+              Partner with the Ministry
+            </h2>
+            <p className="text-white/55 text-sm mt-2 leading-relaxed flex-1">
+              Give your tithe, offerings, or partnership seed securely online.
+            </p>
             <Link
               to="/giving"
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
-                         text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-black transition shadow-md shadow-amber-500/20"
+              className="mt-6 inline-flex items-center gap-2 self-start rounded-full px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold uppercase tracking-widest transition shadow-sm"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                />
-              </svg>
               Give Now
             </Link>
           </div>
 
           {/* Need Help */}
-          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6 backdrop-blur flex flex-col">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="shrink-0 w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-white font-semibold font-raleway">
-                  Need Help?
-                </h2>
-                <p className="text-white/55 text-sm mt-1 leading-relaxed">
-                  Have questions or want to connect with us? We're happy to
-                  help.
-                </p>
-              </div>
-            </div>
+          <div className="border-t-2 border-indigo-400 pt-6 flex flex-col">
+            <h2 className="text-white font-raleway font-bold text-lg">
+              Need Help?
+            </h2>
+            <p className="text-white/55 text-sm mt-2 leading-relaxed flex-1">
+              Have questions or want to connect with us? We're happy to help.
+            </p>
             <Link
               to="/contact"
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5
-                         text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md shadow-indigo-600/20"
+              className="mt-6 inline-flex items-center gap-2 self-start rounded-full px-6 py-3 border border-white/30 hover:border-white text-white text-xs font-bold uppercase tracking-widest transition"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                />
-              </svg>
               Contact Us
             </Link>
           </div>

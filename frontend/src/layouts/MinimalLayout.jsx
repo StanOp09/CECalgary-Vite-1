@@ -37,7 +37,7 @@ export default function MinimalLayout() {
       </button>
 
       {/* Content wrapper */}
-      <div className="px-4 pt-6 sm:pt-10 pb-16 max-w-6xl mx-auto relative">
+      <div className="px-4 pt-6 sm:pt-10 pb-16 max-w-[1400px] mx-auto relative">
         {/* Hero */}
         <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
           <ImageCard imageSrc="/new-year-bg.jpg" title="MIRACLE SERVICE" />

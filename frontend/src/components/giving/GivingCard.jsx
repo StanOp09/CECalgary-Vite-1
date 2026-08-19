@@ -36,26 +36,86 @@ const frequencyOptions = [
 ];
 
 const categoryOptions = [
-  { value: "tithe", label: "Tithe" },
+  // Hidden for now — re-enable by uncommenting.
+  // { value: "tithe", label: "Tithe" },
   { value: "offering", label: "Offering" },
   { value: "seed", label: "Seed Offering" },
   { value: "partnership", label: "Partnership" },
   { value: "general", label: "General Giving" },
 ];
 
-const inputCls =
-  "w-full px-3 py-2.5 rounded-xl border border-white/30 bg-white/20 text-white placeholder-white/60 text-sm " +
-  "focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/30 transition";
+const ACCENTS = {
+  indigo: {
+    bar: "bg-indigo-500",
+    iconBg: "bg-indigo-50",
+    iconText: "text-indigo-600",
+    btn: "bg-indigo-600 hover:bg-indigo-700",
+    ring: "focus:ring-indigo-500",
+    active: "bg-indigo-600 text-white shadow-sm",
+  },
+  rose: {
+    bar: "bg-rose-500",
+    iconBg: "bg-rose-50",
+    iconText: "text-rose-600",
+    btn: "bg-rose-600 hover:bg-rose-700",
+    ring: "focus:ring-rose-500",
+    active: "bg-rose-600 text-white shadow-sm",
+  },
+  emerald: {
+    bar: "bg-emerald-500",
+    iconBg: "bg-emerald-50",
+    iconText: "text-emerald-600",
+    btn: "bg-emerald-600 hover:bg-emerald-700",
+    ring: "focus:ring-emerald-500",
+    active: "bg-emerald-600 text-white shadow-sm",
+  },
+  violet: {
+    bar: "bg-violet-500",
+    iconBg: "bg-violet-50",
+    iconText: "text-violet-600",
+    btn: "bg-violet-600 hover:bg-violet-700",
+    ring: "focus:ring-violet-500",
+    active: "bg-violet-600 text-white shadow-sm",
+  },
+  amber: {
+    bar: "bg-amber-500",
+    iconBg: "bg-amber-50",
+    iconText: "text-amber-600",
+    btn: "bg-amber-600 hover:bg-amber-700",
+    ring: "focus:ring-amber-500",
+    active: "bg-amber-600 text-white shadow-sm",
+  },
+  cyan: {
+    bar: "bg-cyan-500",
+    iconBg: "bg-cyan-50",
+    iconText: "text-cyan-600",
+    btn: "bg-cyan-600 hover:bg-cyan-700",
+    ring: "focus:ring-cyan-500",
+    active: "bg-cyan-600 text-white shadow-sm",
+  },
+};
 
-export default function GivingCard({ id, title, description, Icon, bgColor, showCategorySelect = false }) {
+export default function GivingCard({
+  id,
+  title,
+  description,
+  Icon,
+  accent = "indigo",
+  showCategorySelect = false,
+}) {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState("monthly");
   const [currency, setCurrency] = useState("CAD");
   const [scheduledDate, setScheduledDate] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("tithe");
+  const [selectedCategory, setSelectedCategory] = useState("offering");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const c = ACCENTS[accent] || ACCENTS.indigo;
+  const inputCls =
+    `w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 text-sm ` +
+    `focus:outline-none focus:ring-2 ${c.ring} focus:border-transparent focus:bg-white transition`;
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -109,28 +169,30 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
   };
 
   return (
-    <div className={`${bgColor} rounded-2xl shadow-lg flex flex-col hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-lg transition-shadow duration-300">
+      <div className={`h-1 ${c.bar}`} />
+
       {/* Card header */}
-      <div className="px-6 pt-6 pb-4 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/20 mb-3">
-          <Icon className="h-6 w-6 text-white" />
+      <div className="px-6 pt-6 pb-2">
+        <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl ${c.iconBg} ${c.iconText} mb-3`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <h3 className="font-raleway text-lg font-bold text-white">{title}</h3>
-        <p className="text-sm text-white/80 mt-0.5">{description}</p>
+        <h3 className="font-raleway text-lg font-bold text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-500 mt-0.5">{description}</p>
       </div>
 
-      <div className="flex-1 px-5 pb-6 space-y-3">
+      <div className="flex-1 px-6 pt-4 pb-6 space-y-3">
         {/* Frequency */}
-        <div className="grid grid-cols-2 gap-1.5 bg-black/10 rounded-xl p-1.5">
+        <div className="grid grid-cols-2 gap-1.5 bg-gray-100 rounded-xl p-1.5">
           {frequencyOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => setFrequency(opt.value)}
-              className={`py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`py-1.5 rounded-lg text-xs font-bold transition ${
                 frequency === opt.value
-                  ? "bg-white text-gray-800 shadow"
-                  : "text-white/80 hover:text-white"
+                  ? c.active
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {opt.label}
@@ -143,10 +205,10 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl border border-white/30 bg-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition"
+            className={inputCls}
           >
             {categoryOptions.map((opt) => (
-              <option key={opt.value} value={opt.value} className="text-gray-900 bg-white">
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
@@ -155,7 +217,7 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
 
         {/* Scheduled date */}
         <div>
-          <label className="block text-xs text-white/70 mb-1 pl-1">
+          <label className="block text-xs text-gray-500 mb-1 pl-1">
             {frequency === "one-time" ? "Scheduled Date (optional)" : "Start Date (optional)"}
           </label>
           <input
@@ -163,7 +225,7 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
             value={scheduledDate}
             min={new Date().toISOString().split("T")[0]}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className={inputCls + " [color-scheme:dark]"}
+            className={inputCls}
           />
         </div>
 
@@ -188,19 +250,19 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="px-2 py-2.5 rounded-xl border border-white/30 bg-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50 transition min-w-[80px]"
+            className={`px-2 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 ${c.ring} transition min-w-[80px]`}
           >
             <optgroup label="Popular">
-              {POPULAR.map((c) => (
-                <option key={c.code} value={c.code} className="text-gray-900 bg-white">
-                  {c.code}
+              {POPULAR.map((cur) => (
+                <option key={cur.code} value={cur.code}>
+                  {cur.code}
                 </option>
               ))}
             </optgroup>
             <optgroup label="More">
-              {ALL.slice(POPULAR.length).map((c) => (
-                <option key={c.code} value={c.code} className="text-gray-900 bg-white">
-                  {c.code}
+              {ALL.slice(POPULAR.length).map((cur) => (
+                <option key={cur.code} value={cur.code}>
+                  {cur.code}
                 </option>
               ))}
             </optgroup>
@@ -209,7 +271,9 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
 
         {/* Inline error */}
         {error && (
-          <p className="text-xs text-white bg-black/20 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            {error}
+          </p>
         )}
 
         {/* Submit */}
@@ -217,8 +281,8 @@ export default function GivingCard({ id, title, description, Icon, bgColor, show
           type="button"
           onClick={handleGive}
           disabled={loading}
-          className="w-full py-3 rounded-xl font-bold text-sm bg-white/20 hover:bg-white/30 text-white border border-white/30
-                     disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+          className={`w-full py-3 rounded-xl font-bold text-sm text-white ${c.btn}
+                     disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm flex items-center justify-center gap-2`}
         >
           {loading ? (
             <>
