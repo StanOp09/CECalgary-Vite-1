@@ -86,7 +86,7 @@ router.get("/admin/registrations.csv", requireAdmin("registration-admin"), async
 
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
-    const header = ["Full Name", "Email Address", "Phone Number", "Registration Type", "Number of Attendees", "Attendee Names", "Needs Ride", "Registered At"];
+    const header = ["Full Name", "Email Address", "Phone Number", "Registration Type", "Number of Attendees", "Attendee Names", "Needs Ride", "Source", "Registered At"];
     const rows   = registrations.map((r) => [
       esc(r.fullName),
       esc(r.email),
@@ -95,6 +95,7 @@ router.get("/admin/registrations.csv", requireAdmin("registration-admin"), async
       esc(r.attendees),
       esc(Array.isArray(r.attendeeNames) ? r.attendeeNames.join("; ") : ""),
       esc(r.needsRide ? "Yes" : "No"),
+      esc(r.source ?? "website"),
       esc(r.createdAt ? new Date(r.createdAt).toISOString() : ""),
     ]);
 
@@ -106,6 +107,34 @@ router.get("/admin/registrations.csv", requireAdmin("registration-admin"), async
   } catch (err) {
     console.error("CSV export error:", err);
     return res.status(500).json({ error: "Failed to export CSV" });
+  }
+});
+
+// ── Legacy cleanup (removes pre-Mabuhay Day registrations) ────────────────────
+// Dry-run by default — pass ?confirm=true to actually delete.
+
+router.delete("/admin/registrations/legacy", requireAdmin("registration-admin"), async (req, res) => {
+  try {
+    const filter = { source: { $ne: "mabuhay-day" } };
+    const matchCount = await Registration.countDocuments(filter);
+
+    if (req.query.confirm !== "true") {
+      return res.json({
+        dryRun: true,
+        matchCount,
+        message: `${matchCount} legacy registration(s) would be deleted. Re-request with ?confirm=true to proceed.`,
+      });
+    }
+
+    const { deletedCount } = await Registration.deleteMany(filter);
+    return res.json({
+      dryRun: false,
+      deletedCount,
+      message: `Deleted ${deletedCount} legacy registration(s).`,
+    });
+  } catch (err) {
+    console.error("Legacy registration cleanup error:", err);
+    return res.status(500).json({ error: "Failed to clean up legacy registrations" });
   }
 });
 
