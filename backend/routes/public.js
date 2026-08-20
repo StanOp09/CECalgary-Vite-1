@@ -2,10 +2,13 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Registration from "../models/Registration.js";
+import { getLiveStatus } from "../jobs/youtubeLiveStatus.js";
 
 const router = Router();
 
 router.get("/health", (_, res) => res.json({ ok: true }));
+
+router.get("/live-status", (_, res) => res.json(getLiveStatus()));
 
 router.post("/register", async (req, res) => {
   try {

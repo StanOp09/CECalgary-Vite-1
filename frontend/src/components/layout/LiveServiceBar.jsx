@@ -5,11 +5,10 @@ export default function LiveServiceBar() {
   const [liveVideoId, setLiveVideoId] = useState(null);
   const navigate = useNavigate();
 
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  const CHANNEL_ID = import.meta.env.VITE_YOUTUBE_CHANNEL_ID;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
-    if (!API_KEY || !CHANNEL_ID) {
+    if (!BACKEND_URL) {
       setLiveVideoId(null);
       return;
     }
@@ -18,32 +17,21 @@ export default function LiveServiceBar() {
 
     const checkLive = async () => {
       try {
-        const url =
-          `https://www.googleapis.com/youtube/v3/search` +
-          `?part=snippet` +
-          `&channelId=${CHANNEL_ID}` +
-          `&eventType=live` +
-          `&type=video` +
-          `&maxResults=1` +
-          `&key=${API_KEY}`;
-
-        const res = await fetch(url);
+        const res = await fetch(`${BACKEND_URL}/live-status`, { cache: "no-store" });
         const data = await res.json();
-        const videoId = data?.items?.[0]?.id?.videoId || null;
-
-        if (!cancelled) setLiveVideoId(videoId);
+        if (!cancelled) setLiveVideoId(data?.liveVideoId || null);
       } catch {
         if (!cancelled) setLiveVideoId(null);
       }
     };
 
     checkLive();
-    const interval = setInterval(checkLive, 60000);
+    const interval = setInterval(checkLive, 30000);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [API_KEY, CHANNEL_ID]);
+  }, [BACKEND_URL]);
 
   const isOurChannelLive = Boolean(liveVideoId);
 

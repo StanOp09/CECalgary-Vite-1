@@ -9,17 +9,16 @@ export default function LiveService() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  const CHANNEL_ID = import.meta.env.VITE_YOUTUBE_CHANNEL_ID;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const HLS_URL =
     "https://cdn3.wowza.com/5/VktqVXd0Tms3eG16/LoveworldCAN/ngrp:L.stream_all/playlist.m3u8";
 
   const isOurChannelLive = Boolean(liveVideoId);
 
-  // ---- Check YouTube Live (poll) ----
+  // ---- Check live status (polls our backend, which caches the YouTube check) ----
   useEffect(() => {
-    if (!API_KEY || !CHANNEL_ID) {
+    if (!BACKEND_URL) {
       setLiveVideoId(null);
       setLoading(false);
       return;
@@ -29,12 +28,7 @@ export default function LiveService() {
 
     const checkLive = async () => {
       try {
-        const url =
-          `https://www.googleapis.com/youtube/v3/search?` +
-          `part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&maxResults=1&key=${API_KEY}` +
-          `&t=${Date.now()}`;
-
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(`${BACKEND_URL}/live-status`, { cache: "no-store" });
 
         if (!res.ok) {
           if (!cancelled) setLiveVideoId(null);
@@ -42,25 +36,7 @@ export default function LiveService() {
         }
 
         const data = await res.json();
-
-        if (data?.error) {
-          if (!cancelled) setLiveVideoId(null);
-          return;
-        }
-
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const videoId = items[0]?.id?.videoId || null;
-
-        console.log(
-          "YT live items:",
-          data?.items?.length,
-          "videoId:",
-          videoId,
-          "error:",
-          data?.error,
-        );
-
-        if (!cancelled) setLiveVideoId(videoId);
+        if (!cancelled) setLiveVideoId(data?.liveVideoId || null);
       } catch {
         if (!cancelled) setLiveVideoId(null);
       } finally {
@@ -69,13 +45,13 @@ export default function LiveService() {
     };
 
     checkLive();
-    const interval = setInterval(checkLive, 120000);
+    const interval = setInterval(checkLive, 30000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [API_KEY, CHANNEL_ID]);
+  }, [BACKEND_URL]);
 
   // ---- Attach HLS stream when NOT YouTube ----
   useEffect(() => {

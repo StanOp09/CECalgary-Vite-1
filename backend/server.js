@@ -8,6 +8,7 @@ import givingRoutes from "./routes/giving.js";
 import adminRegistrationRoutes from "./routes/adminRegistration.js";
 import adminOutreachRoutes from "./routes/adminOutreach.js";
 import { startScheduledGivingJob } from "./jobs/chargeScheduledDonations.js";
+import { startYoutubeLiveStatusJob } from "./jobs/youtubeLiveStatus.js";
 
 dotenv.config();
 
@@ -52,4 +53,5 @@ app.use(adminOutreachRoutes);
 // ── Start ─────────────────────────────────────────────────────────────────────
 connectDB().catch(console.error);
 startScheduledGivingJob();
+startYoutubeLiveStatusJob();
 app.listen(3000, () => console.log("Server running on 3000"));
