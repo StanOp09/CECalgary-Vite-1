@@ -13,8 +13,8 @@ const authHeaders = (token) => ({ Authorization: `Bearer ${token}` });
 export const createCheckoutSession = (payload) =>
   fetch(`${BASE()}/create-checkout-session`, json("POST", payload));
 
-export const createPortalSession = (email) =>
-  fetch(`${BASE()}/create-portal-session`, json("POST", { email }));
+export const requestManageGivingLink = (email) =>
+  fetch(`${BASE()}/manage-giving/request-link`, json("POST", { email }));
 
 export const submitRegistration = (formData, signal) =>
   fetch(`${BASE()}/register`, { ...json("POST", formData), signal });

@@ -2,6 +2,7 @@ import { Router } from "express";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { getStripe } from "../lib/stripe.js";
+import { sendEmail } from "../lib/email.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
 import { toMinorUnits, fromMinorUnits } from "../utils/currency.js";
 import Donation from "../models/Donation.js";
@@ -167,30 +168,80 @@ router.post("/create-checkout-session", async (req, res) => {
 
 // ── Billing portal ────────────────────────────────────────────────────────────
 
-router.post("/create-portal-session", requireAdmin("giving-admin"), async (req, res) => {
-  try {
-    const { email } = req.body;
+// Donors request a link by email; the portal only opens from a signed link sent
+// to that inbox, so knowing someone's email address isn't enough to manage their giving.
+// The response is identical whether or not the email has a Stripe customer, so the
+// endpoint can't be used to discover who gives.
 
-    if (!email || !email.includes("@"))
-      return res.status(400).json({ error: "Valid email is required" });
+const MANAGE_LINK_TTL = "30m";
+const MANAGE_LINK_COOLDOWN_MS = 60 * 1000;
+const lastLinkSentAt = new Map(); // email → timestamp, throttles repeat requests
+
+const backendBase = (req) => `${req.get("x-forwarded-proto") || req.protocol}://${req.get("host")}`;
+
+router.post("/manage-giving/request-link", async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!email || !email.includes("@"))
+    return res.status(400).json({ error: "Valid email is required" });
+
+  const ok = { message: "If that email has giving on file, we've sent a link to manage it." };
+
+  try {
+    const last = lastLinkSentAt.get(email);
+    if (last && Date.now() - last < MANAGE_LINK_COOLDOWN_MS) return res.json(ok);
 
     const customers = await getStripe().customers.list({ email, limit: 1 });
     const customer = customers.data?.[0];
+    if (!customer) return res.json(ok);
 
-    if (!customer)
-      return res.status(404).json({
-        error: "No Stripe customer found for this email. Make a donation first.",
-      });
+    lastLinkSentAt.set(email, Date.now());
 
-    const portalSession = await getStripe().billingPortal.sessions.create({
-      customer: customer.id,
-      return_url: `${getClientBase()}/giving`,
+    const token = jwt.sign(
+      { purpose: "manage-giving", customerId: customer.id },
+      process.env.JWT_SECRET,
+      { expiresIn: MANAGE_LINK_TTL },
+    );
+    const link = `${backendBase(req)}/manage-giving?token=${encodeURIComponent(token)}`;
+
+    await sendEmail({
+      to: email,
+      subject: "Manage your giving — Christ Embassy Calgary",
+      text:
+        `Use this link to view or update your giving with Christ Embassy Calgary:\n\n${link}\n\n` +
+        `The link expires in 30 minutes. If you didn't request it, you can ignore this email.`,
+      html:
+        `<p>Use the button below to view or update your giving with Christ Embassy Calgary.</p>` +
+        `<p><a href="${link}" style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Manage my giving</a></p>` +
+        `<p style="color:#6b7280;font-size:13px">The link expires in 30 minutes. If you didn't request it, you can ignore this email.</p>`,
     });
 
-    return res.json({ url: portalSession.url });
+    return res.json(ok);
+  } catch (err) {
+    console.error("Manage-giving link error:", err);
+    return res.status(500).json({ error: "Could not send the link. Please try again." });
+  }
+});
+
+router.get("/manage-giving", async (req, res) => {
+  const fail = () => res.redirect(303, `${getClientBase()}/giving?manage=expired`);
+
+  let payload;
+  try {
+    payload = jwt.verify(String(req.query.token || ""), process.env.JWT_SECRET);
+  } catch {
+    return fail();
+  }
+  if (payload?.purpose !== "manage-giving" || !payload.customerId) return fail();
+
+  try {
+    const portalSession = await getStripe().billingPortal.sessions.create({
+      customer: payload.customerId,
+      return_url: `${getClientBase()}/giving`,
+    });
+    return res.redirect(303, portalSession.url);
   } catch (err) {
     console.error("Portal session error:", err);
-    return res.status(500).json({ error: err?.message || "Portal failed" });
+    return fail();
   }
 });
 

@@ -3,12 +3,19 @@ import { useState } from "react";
 export default function ManageGiving({ prefillEmail = "" }) {
   const [email, setEmail] = useState(prefillEmail);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Set when the donor lands back here from an expired or invalid email link.
+  const [error, setError] = useState(() =>
+    new URLSearchParams(window.location.search).get("manage") === "expired"
+      ? "That link has expired. Enter your email to get a new one."
+      : "",
+  );
+  const [sent, setSent] = useState("");
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const handleManageGiving = async () => {
     setError("");
+    setSent("");
 
     if (!email || !email.includes("@")) {
       setError("Please enter a valid email address.");
@@ -18,7 +25,7 @@ export default function ManageGiving({ prefillEmail = "" }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/create-portal-session`, {
+      const res = await fetch(`${BACKEND_URL}/manage-giving/request-link`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -26,12 +33,12 @@ export default function ManageGiving({ prefillEmail = "" }) {
 
       const data = await res.json();
 
-      if (!data.url) throw new Error("No portal URL returned");
+      if (!res.ok) throw new Error(data?.error || "Request failed");
 
-      window.location.href = data.url;
+      setSent(data.message);
     } catch (err) {
-      console.error("Portal error:", err);
-      setError("Could not open the portal. Please try again.");
+      console.error("Manage giving error:", err);
+      setError("Could not send the link. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +69,7 @@ export default function ManageGiving({ prefillEmail = "" }) {
           </h2>
         </div>
         <p className="text-sm text-gray-500">
-          Update your recurring giving using the email you gave with.
+          Enter the email you gave with and we&apos;ll send you a secure link to update your recurring giving.
         </p>
       </div>
 
@@ -122,10 +129,10 @@ export default function ManageGiving({ prefillEmail = "" }) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                   />
                 </svg>
-                Loading…
+                Sending…
               </>
             ) : (
-              "Manage"
+              "Email me a link"
             )}
           </button>
         </div>
@@ -135,7 +142,12 @@ export default function ManageGiving({ prefillEmail = "" }) {
             {error}
           </p>
         )}
-      </div>
+
+        {sent && (
+          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+            {sent} Check your inbox — the link expires in 30 minutes.
+          </p>
+        )}      </div>
     </div>
   );
 }
