@@ -180,7 +180,8 @@ const lastLinkSentAt = new Map(); // email → timestamp, throttles repeat reque
 const backendBase = (req) => `${req.get("x-forwarded-proto") || req.protocol}://${req.get("host")}`;
 
 router.post("/manage-giving/request-link", async (req, res) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const typedEmail = String(req.body?.email || "").trim();
+  const email = typedEmail.toLowerCase();
   if (!email || !email.includes("@"))
     return res.status(400).json({ error: "Valid email is required" });
 
@@ -190,9 +191,17 @@ router.post("/manage-giving/request-link", async (req, res) => {
     const last = lastLinkSentAt.get(email);
     if (last && Date.now() - last < MANAGE_LINK_COOLDOWN_MS) return res.json(ok);
 
-    const customers = await getStripe().customers.list({ email, limit: 1 });
-    const customer = customers.data?.[0];
-    if (!customer) return res.json(ok);
+    // Stripe's email filter is case-sensitive, so try the address as typed and lowercased.
+    let customer = null;
+    for (const candidate of new Set([typedEmail, email])) {
+      const customers = await getStripe().customers.list({ email: candidate, limit: 1 });
+      customer = customers.data?.[0];
+      if (customer) break;
+    }
+    if (!customer) {
+      console.log("[manage-giving] No Stripe customer for requested email");
+      return res.json(ok);
+    }
 
     lastLinkSentAt.set(email, Date.now());
 
@@ -214,6 +223,7 @@ router.post("/manage-giving/request-link", async (req, res) => {
         `<p><a href="${link}" style="display:inline-block;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Manage my giving</a></p>` +
         `<p style="color:#6b7280;font-size:13px">The link expires in 30 minutes. If you didn't request it, you can ignore this email.</p>`,
     });
+    console.log(`[manage-giving] Link emailed for customer ${customer.id}`);
 
     return res.json(ok);
   } catch (err) {
